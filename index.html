@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partly Rainy</title>
+<style>
+  @font-face { font-family:'Yodaka'; src:url('yodaka.woff') format('woff'); font-display:block; }
+  :root { --bg:#10131a; --fg:#e6e9f0; --pb:rgba(10,12,17,.75); }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body { background:var(--bg); color:var(--fg); font-family:"Yodaka",system-ui,sans-serif; text-transform:uppercase;
+         -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  body.touch { touch-action:none; }
+  #bg { position:fixed; left:0; top:0; width:100%; height:100%; z-index:-1; }
+  #wrap { position:absolute; left:50%; top:0; width:max-content; display:flex; gap:20px; padding:16px; align-items:flex-start; transform-origin:top center; }
+  #board { background:#0a0c11; border:2px solid #fff; display:block; }
+  #side { width:240px; display:flex; flex-direction:column; gap:0; }
+  .box { padding:1px 12px; }
+  .box h2 { margin:0 0 1px; font-size:17px; font-weight:400; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6); letter-spacing:.08em; }
+  .val { font-weight:400; text-shadow:0 1px 4px rgba(0,0,0,.55); margin-bottom:8px; line-height:1.1; font-size:45px; font-variant-numeric:tabular-nums; }
+  #pieces { font-weight:400; display:inline-block; line-height:1.2; font-size:calc(var(--pbase, 66px) * var(--k, 1)); }
+  #pieceBox { height:96px; }
+  #next { display:block; margin:0 auto; }
+  /* 狭い画面: 右側の情報欄を細くする */
+  #wrap.narrow { gap:8px; padding:8px; }
+  .narrow #side { width:118px; }
+  .narrow .box { padding:1px 4px; }
+  .narrow .box h2 { font-size:12px; }
+  .narrow .val { font-size:30px; margin-bottom:6px; }
+  .narrow #pieces { --pbase:34px; }
+  .narrow #pieceBox { height:52px; }
+  .narrow #next { width:108px; height:57px; }
+
+  /* ---- タイトル画面 / HOW TO ---- */
+  body.titleOn #wrap, body.titleOn #menuBtn, body.titleOn #pad { visibility:hidden; }
+  #title { position:fixed; inset:0; z-index:25; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; padding:16px; }
+  #titleImg { display:block; image-rendering:pixelated; image-rendering:crisp-edges; width:auto; height:auto; filter:drop-shadow(4px 4px 0 rgba(0,0,0,.35)); }   /* ぼかさず拡大(ドットのまま) */
+  #titleText { text-transform:none; font-size:clamp(56px,16vw,150px); letter-spacing:.06em; color:#fff; text-shadow:4px 4px 0 rgba(0,0,0,.35); text-align:center; line-height:1.05; }
+  .tbtn { font:inherit; font-size:28px; letter-spacing:.1em; color:#fff; background:var(--bb, #0a0c11); border:2px solid #fff; border-radius:12px;
+          padding:14px 44px; min-width:240px; cursor:pointer; }
+  .tbtn:hover { filter:brightness(1.25); }
+  #howto { position:fixed; inset:0; z-index:35; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #howtoPanel { background:rgba(10,12,17,.88); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(560px,100%); max-height:100%;
+                overflow:auto; padding:18px 22px; font:14px/1.65 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
+                -webkit-user-select:text; user-select:text; }
+  #howtoPanel [data-lang] { display:none; }
+  #howtoPanel:not(.ja) [data-lang=en], #howtoPanel.ja [data-lang=ja] { display:block; }
+  #howtoPanel h2 { margin:0 0 8px; font-size:20px; font-weight:600; color:#fff; }
+  #howtoPanel h3 { margin:18px 0 6px; font-size:15px; font-weight:600; color:#fff; border-bottom:1px solid #3a4560; padding-bottom:3px; }
+  #howtoPanel h4 { margin:10px 0 2px; font-size:14px; font-weight:600; color:#cfe0ff; }
+  #howtoPanel table { border-collapse:collapse; width:100%; }
+  #howtoPanel td { padding:1px 0; vertical-align:top; }
+  #howtoPanel td:first-child { width:42%; color:#fff; padding-right:10px; }
+  #howtoPanel p { margin:4px 0; }
+  #howtoPanel ul { margin:4px 0; padding-left:20px; }
+  #howtoPanel .back { display:block; margin:18px 0 0 auto; font:inherit; font-size:15px; color:#fff; background:#2f6dff; border:1px solid #8fb2ff;
+                      border-radius:6px; padding:8px 22px; cursor:pointer; }
+  #menuBtn { position:fixed; top:8px; right:8px; z-index:20; font:inherit; font-size:15px; letter-spacing:.08em; color:#e9ecf1;
+             background:var(--bb, #0a0c11); border:2px solid #fff; border-radius:6px; padding:8px 14px; cursor:pointer; }
+  body:not(.touch) #menuBtn { top:12px; right:12px; font-size:30px; padding:16px 28px; border-radius:12px; }   /* PCは倍サイズ */
+  #menuBtn:hover { filter:brightness(1.25); }
+  #menu { position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #menuPanel { background:var(--pb); backdrop-filter:blur(2px); border:1px solid #4a5570; border-radius:10px; color:#d3d8e0;
+               width:min(440px,100%); max-height:100%; overflow:auto; padding:16px 18px; font-size:12px; line-height:1.7; }
+  #menuPanel h3 { margin:14px 0 6px; font-size:14px; font-weight:400; color:#fff; letter-spacing:.08em; }
+  #menuPanel h3:first-child { margin-top:0; }
+  .row { display:flex; gap:12px; }
+  .row b { flex:0 0 38%; font-weight:400; color:#fff; }
+  .note { color:#9aa3b5; margin-top:4px; }
+  .seg { display:flex; gap:8px; }
+  .seg button, #menuFoot button { font:inherit; font-size:13px; letter-spacing:.06em; color:#d3d8e0; background:rgba(255,255,255,.08);
+          border:1px solid #4a5570; border-radius:6px; padding:9px 12px; cursor:pointer; }
+  .seg button { flex:1; }
+  .seg button.on { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
+  .desc { margin-top:10px; }
+  #menuFoot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+  #pad { position:fixed; left:0; right:0; bottom:0; z-index:10; padding:8px 10px calc(10px + env(safe-area-inset-bottom));
+         display:flex; flex-direction:column; gap:8px; background:rgba(0,0,0,.25); }
+  #pad .grp { display:grid; gap:8px; }
+  #pad .l { grid-template-columns:repeat(3,1fr); }
+  #pad .r { grid-template-columns:repeat(4,1fr); }
+  #pad button { font:inherit; font-size:14px; letter-spacing:.05em; color:#fff; background:rgba(10,12,17,.72); border:1px solid #5b6784;
+                border-radius:10px; height:54px; touch-action:none; -webkit-tap-highlight-color:transparent; }
+  #pad button:active, #pad button.down { background:rgba(70,130,255,.7); }
+  /* 横持ち: 左に移動系、右に回転系のボタン */
+  body.land #pad { inset:0; padding:0; background:none; pointer-events:none; display:block; }
+  body.land #pad .grp { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); pointer-events:auto; width:190px; }
+  body.land #pad .l { left:calc(14px + env(safe-area-inset-left)); grid-template-columns:repeat(2,1fr); }
+  body.land #pad .r { right:calc(14px + env(safe-area-inset-right)); grid-template-columns:repeat(2,1fr); }
+  body.land #pad .l [data-act="soft"] { grid-column:span 2; }
+  body.land #pad button { height:60px; }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="wrap">
+  <canvas id="board" width="300" height="600"></canvas>
+  <div id="side">
+    <div class="box"><h2>NEXT</h2><canvas id="next" width="190" height="100"></canvas></div>
+    <div class="box"><h2>PIECES</h2><div id="pieceBox"><div class="val" id="pieces">0</div></div></div>
+    <div class="box"><h2>SCORE</h2><div class="val" id="score">0</div></div>
+    <div class="box"><h2>LEVEL</h2><div class="val" id="level">1</div></div>
+    <div class="box"><h2>LINES</h2><div class="val" id="lines">0</div></div>
+  </div>
+</div>
+<div id="title">
+  <img id="titleImg" src="title.png" alt="Partly Rainy">
+  <div id="titleText" hidden>Partly<br>Rainy</div>
+  <button class="tbtn" id="startBtn" type="button">START</button>
+  <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
+</div>
+<div id="howto" hidden>
+  <div id="howtoPanel">
+    <div data-lang="en">
+    <h2>How to play</h2>
+    <p>Stack the falling pieces and clear lines. Every 10th piece is a double-size piece (it still falls one small cell at a time). The game ends when the stack reaches the top.</p>
+
+    <h3>Keyboard</h3>
+    <table>
+      <tr><td>4 / 6</td><td>Move left / right</td></tr>
+      <tr><td>1, 5 / 3</td><td>Rotate left / right</td></tr>
+      <tr><td>2</td><td>Drop (soft drop)</td></tr>
+      <tr><td>0</td><td>Hard drop</td></tr>
+      <tr><td>7, 8, 9</td><td>Swap with Next</td></tr>
+      <tr><td>Esc, P</td><td>Pause</td></tr>
+      <tr><td>Enter</td><td>Restart</td></tr>
+    </table>
+    <p>Arrow keys, Z, X, Space and C also work.</p>
+
+    <h3>Gamepad</h3>
+    <table>
+      <tr><td>D-pad / left stick</td><td>Move / drop</td></tr>
+      <tr><td>A</td><td>Rotate right</td></tr>
+      <tr><td>B, X</td><td>Rotate left</td></tr>
+      <tr><td>Up, RT</td><td>Hard drop</td></tr>
+      <tr><td>Y, LB, RB</td><td>Swap with Next</td></tr>
+      <tr><td>Start</td><td>Pause / restart</td></tr>
+      <tr><td>Back</td><td>Menu</td></tr>
+    </table>
+
+    <h3>Smartphone</h3>
+    <p>Choose one of two control modes from the MENU button (the other mode is turned off).</p>
+    <h4>Buttons</h4>
+    <p>On-screen buttons: LEFT, RIGHT, DROP, ROT L, ROT R, SWAP and HARD DROP. Hold LEFT, RIGHT or DROP to repeat. In portrait they sit at the bottom; in landscape, move/drop are on the left and rotate/swap/hard drop are on the right.</p>
+    <h4>Flick</h4>
+    <table>
+      <tr><td>Drag left / right</td><td>Move</td></tr>
+      <tr><td>Tap</td><td>Rotate right</td></tr>
+      <tr><td>Two-finger tap</td><td>Rotate left</td></tr>
+      <tr><td>Drag down</td><td>Drop</td></tr>
+      <tr><td>Flick down</td><td>Hard drop</td></tr>
+      <tr><td>Flick up</td><td>Swap with Next</td></tr>
+    </table>
+
+    <h3>Scoring</h3>
+    <ul>
+      <li><b>Clearing lines:</b> 100 × 2<sup>(n−1)</sup> points for n lines cleared at once &mdash; 1 line = 100, 2 = 200, 3 = 400, 4 = 800, and it keeps doubling (double-size pieces can clear more).</li>
+      <li><b>Drop:</b> 1 point for every row you drop with DROP.</li>
+      <li><b>Hard drop:</b> 1 point for every row the piece falls.</li>
+      <li>The level goes up every 10 lines and the pieces fall faster. Speed does not change the points.</li>
+    </ul>
+
+    <h3>Weather</h3>
+    <p>The PIECES counter drives the sky: clouds darken as the last digit goes 7, 8, 9, and it rains when the count reaches a multiple of 10.</p>
+
+    </div>
+    <div data-lang="ja">
+    <h2>遊び方</h2>
+    <p>落ちてくるピースを積んでラインを消します。10個目ごとに倍サイズのピースが落ちてきます(落下は小さいマス1つ分ずつです)。積み上がって一番上に届くとゲームオーバーです。</p>
+
+    <h3>キーボード</h3>
+    <table>
+      <tr><td>4 / 6</td><td>左右に移動</td></tr>
+      <tr><td>1, 5 / 3</td><td>左回転 / 右回転</td></tr>
+      <tr><td>2</td><td>ドロップ(ソフトドロップ)</td></tr>
+      <tr><td>0</td><td>ハードドロップ</td></tr>
+      <tr><td>7, 8, 9</td><td>Next と入れ替え</td></tr>
+      <tr><td>Esc, P</td><td>一時停止</td></tr>
+      <tr><td>Enter</td><td>リスタート</td></tr>
+    </table>
+    <p>矢印キー、Z、X、Space、C でも操作できます。</p>
+
+    <h3>ジョイパッド</h3>
+    <table>
+      <tr><td>十字キー / 左スティック</td><td>移動 / ドロップ</td></tr>
+      <tr><td>A</td><td>右回転</td></tr>
+      <tr><td>B, X</td><td>左回転</td></tr>
+      <tr><td>上, RT</td><td>ハードドロップ</td></tr>
+      <tr><td>Y, LB, RB</td><td>Next と入れ替え</td></tr>
+      <tr><td>Start</td><td>一時停止 / リスタート</td></tr>
+      <tr><td>Back</td><td>メニュー</td></tr>
+    </table>
+
+    <h3>スマホ</h3>
+    <p>MENU ボタンから、操作モードを2つのうち1つ選べます(選ばなかった方の操作は無効になります)。</p>
+    <h4>ボタン</h4>
+    <p>画面上のボタン(LEFT、RIGHT、DROP、ROT L、ROT R、SWAP、HARD DROP)で操作します。LEFT・RIGHT・DROP は長押しで連続して動きます。縦持ちでは画面の下に並び、横持ちでは左に移動・ドロップ、右に回転・入れ替え・ハードドロップが並びます。</p>
+    <h4>フリック</h4>
+    <table>
+      <tr><td>左右にドラッグ</td><td>移動</td></tr>
+      <tr><td>タップ</td><td>右回転</td></tr>
+      <tr><td>2本指でタップ</td><td>左回転</td></tr>
+      <tr><td>下にドラッグ</td><td>ドロップ</td></tr>
+      <tr><td>下にフリック</td><td>ハードドロップ</td></tr>
+      <tr><td>上にフリック</td><td>Next と入れ替え</td></tr>
+    </table>
+
+    <h3>採点</h3>
+    <ul>
+      <li><b>ライン消去:</b> 一度に n ライン消すと 100 × 2<sup>(n−1)</sup> 点です。1ライン=100、2ライン=200、3ライン=400、4ライン=800、以降も倍々になります(倍サイズのピースならさらに多く消せます)。</li>
+      <li><b>ドロップ:</b> DROP で落とした1段につき1点です。</li>
+      <li><b>ハードドロップ:</b> 落下した1段につき1点です。</li>
+      <li>レベルは10ライン消すごとに上がり、落下が速くなります。速さは点数に影響しません。</li>
+    </ul>
+
+    <h3>天気</h3>
+    <p>PIECES の数字に合わせて空が変わります。1桁目が 7、8、9 と進むにつれて雲が暗くなり、10の倍数になると雨が降ります。</p>
+    </div>
+    <button class="back" id="howtoBack" type="button">Back</button>
+  </div>
+</div>
+<button id="menuBtn" type="button">MENU</button>
+<div id="menu" hidden>
+  <div id="menuPanel">
+    <div id="menuBody"></div>
+    <div id="menuFoot"><button id="restartBtn" type="button">RESTART</button><button id="closeBtn" type="button">CLOSE</button></div>
+  </div>
+</div>
+<div id="pad" hidden>
+  <div class="grp l">
+    <button type="button" data-act="left">LEFT</button>
+    <button type="button" data-act="right">RIGHT</button>
+    <button type="button" data-act="soft">DROP</button>
+  </div>
+  <div class="grp r">
+    <button type="button" data-act="rotL">ROT L</button>
+    <button type="button" data-act="rotR">ROT R</button>
+    <button type="button" data-act="swap">SWAP</button>
+    <button type="button" data-act="hard">HARD DROP</button>
+  </div>
+</div>
+<script>
+(() => {
+  const COLS = 10, ROWS = 20, CELL = 30;
+  const BIG_EVERY = 10;          // 10個目ごとに倍サイズ
+  const board = document.getElementById('board'), ctx = board.getContext('2d');
+  const nextCv = document.getElementById('next'), nctx = nextCv.getContext('2d');
+
+  // 各駒の基準配置(固定の正方形の箱の中)。回転は箱の中での配置を切り替えるだけなので位置はずれない
+  const SHAPES = {
+    I: { c:'#00f0ff', m:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]] },
+    O: { c:'#ffe600', m:[[1,1],[1,1]] },
+    T: { c:'#cc33ff', m:[[0,1,0],[1,1,1],[0,0,0]] },
+    S: { c:'#14ff52', m:[[0,1,1],[1,1,0],[0,0,0]] },
+    Z: { c:'#ff2442', m:[[1,1,0],[0,1,1],[0,0,0]] },
+    J: { c:'#4682ff', m:[[1,0,0],[1,1,1],[0,0,0]] },
+    L: { c:'#ff9500', m:[[0,0,1],[1,1,1],[0,0,0]] },
+  };
+  const NAMES = Object.keys(SHAPES);
+
+  let grid, cur, next, bag, count, score, lines, level, over, paused, dropAt, last;
+  let cloud = 0, rain = 0, tCloud = 0, tRain = 0;   // 天気(0〜1)
+
+  const scale = (m, s) => {
+    if (s === 1) return m.map(r => r.slice());
+    const out = [];
+    for (const row of m) {
+      const r = [];
+      for (const v of row) for (let i = 0; i < s; i++) r.push(v);
+      for (let i = 0; i < s; i++) out.push(r.slice());
+    }
+    return out;
+  };
+  const rotCW = m => m[0].map((_, x) => m.map(r => r[x]).reverse());
+  // 回転4パターン(0°, 90°, 180°, 270°)の配置を配列として持つ: ROT[駒名][向き]
+  const ROT = {};
+  for (const n of Object.keys(SHAPES)) {
+    const a = [SHAPES[n].m];
+    for (let i = 1; i < 4; i++) a.push(rotCW(a[i - 1]));
+    ROT[n] = a;
+  }
+
+  function newPiece() {
+    if (!bag || !bag.length) {
+      bag = NAMES.slice();
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bag[i], bag[j]] = [bag[j], bag[i]];
+      }
+    }
+    count++;
+    const s = count % BIG_EVERY === 0 ? 2 : 1;
+    const name = bag.pop();
+    return { name, color: SHAPES[name].c, s, rot: 0, m: scale(ROT[name][0], s), x: 0, y: 0 };
+  }
+  function place(p) {
+    p.rot = 0;
+    p.m = scale(ROT[p.name][0], p.s);
+    p.x = Math.floor((COLS - p.m[0].length) / 2);
+    p.y = -p.m.findIndex(row => row.some(Boolean));   // 一番上の段が盤面の最上段に来るように
+  }
+
+  const hit = (m, x, y) => {
+    for (let r = 0; r < m.length; r++)
+      for (let c = 0; c < m[r].length; c++) {
+        if (!m[r][c]) continue;
+        const gx = x + c, gy = y + r;
+        if (gx < 0 || gx >= COLS || gy >= ROWS) return true;
+        if (gy >= 0 && grid[gy][gx]) return true;
+      }
+    return false;
+  };
+
+  function reset() {
+    grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    bag = []; count = Number(new URLSearchParams(location.search).get('count')) || 0;   // ?count=9 で途中から開始(確認用)
+    score = 0; lines = 0; level = 1; over = false; paused = false;
+    cur = newPiece(); place(cur);
+    next = newPiece();
+    last = performance.now(); dropAt = 0; cloud = rain = 0;
+    updateHud();
+  }
+
+  const interval = () => Math.max(150, 2400 - (level - 1) * 200);
+
+  function move(dx) {
+    if (!hit(cur.m, cur.x + dx, cur.y)) { cur.x += dx; return true; }
+    return false;
+  }
+  function rotate(cw) {
+    // 位置(箱の原点)は動かさず、回転後の配置に切り替えるだけ。ぶつかるなら回転しない
+    const rot = (cur.rot + (cw ? 1 : 3)) % 4;
+    const m = scale(ROT[cur.name][rot], cur.s);
+    if (!hit(m, cur.x, cur.y)) { cur.rot = rot; cur.m = m; }
+  }
+  function softDrop() {
+    if (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; score += 1; dropAt = performance.now(); }
+    else lock();
+  }
+  function hardDrop() {
+    let n = 0;
+    while (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; n++; }
+    score += n;
+    lock();
+  }
+  function swapNext() {
+    // 駒の形と色だけを入れ替える。大きさ(倍サイズ)は落下中/Nextそれぞれの枠のまま
+    const sz = cur.s, nz = next.s;
+    const t = cur; cur = next; next = t;
+    cur.s = sz; next.s = nz;
+    next.m = scale(ROT[next.name][0], next.s);
+    place(cur);
+    if (hit(cur.m, cur.x, cur.y)) { over = true; }
+    dropAt = performance.now();
+  }
+
+  function lock() {
+    cur.m.forEach((row, r) => row.forEach((v, c) => {
+      const gy = cur.y + r, gx = cur.x + c;
+      if (v && gy >= 0) grid[gy][gx] = cur.color;
+    }));
+    let cleared = 0;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (grid[r].every(Boolean)) {
+        grid.splice(r, 1);
+        grid.unshift(Array(COLS).fill(null));
+        cleared++; r++;
+      }
+    }
+    if (cleared) {
+      score += 100 * 2 ** (cleared - 1);
+      lines += cleared;
+      level = Math.floor(lines / 10) + 1;
+    }
+    cur = next; place(cur);
+    next = newPiece();
+    if (hit(cur.m, cur.x, cur.y)) over = true;
+    dropAt = performance.now();
+    updateHud();
+  }
+
+  function updateHud() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('level').textContent = level;
+    document.getElementById('lines').textContent = lines;
+    const pn = count - 1, pe = document.getElementById('pieces');
+    pe.textContent = pn;
+    const d1 = pn % 10;
+    let st = { k: 1, c: '', b: false };
+    if (pn > 0) {
+      if (d1 === 0) st = { k: 1.3, c: '#ff3b30', b: false };
+      else if (d1 === 9) st = { k: 1.2, c: '#ff9f0a', b: false };
+      else if (d1 === 8) st = { k: 1.1, c: '#fff45e', b: false };
+    }
+    tCloud = pn > 0 && d1 === 0 ? 1 : d1 === 9 ? 1 : d1 === 8 ? .67 : d1 === 7 ? .34 : 0;
+    if (pn === 0) tCloud = 0;
+    tRain = pn > 0 && d1 === 0 ? 1 : 0;
+    pe.style.setProperty('--k', st.k);
+    pe.style.color = st.c;
+  }
+
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    let h = 0, sat = 0, l = (mx + mn) / 2;
+    if (mx !== mn) {
+      const d = mx - mn;
+      sat = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60;
+    }
+    l = k >= 0 ? l + (1 - l) * k * .85 : l * (1 + k * .8);
+    return `hsl(${h},${Math.round(Math.min(100, sat * 100 + 10))}%,${Math.round(l * 100)}%)`;
+  }
+  // フラットなセル(隙間なし)
+  function cell(c, x, y, size, color) {
+    c.fillStyle = color;
+    c.fillRect(x, y, size, size);
+  }
+  // ピースを描画(巨大ピースは4つの大セル)
+  // 駒を「ブロック単位」の格子として扱い、頂点(4マスが接する点)ごとに角の種類を調べる
+  //   埋まっているマスが1つ = 外側に出っ張った角(凸), 3つ = 内側にへこんだ角(凹)
+  function pieceGrid(m, s) {
+    const rows = m.length / s, cols = m[0].length / s;
+    const f = (i, j) => i >= 0 && j >= 0 && i < rows && j < cols && !!m[i * s][j * s];
+    const corners = [];   // 4マス [左上, 右上, 左下, 右下] の埋まり具合
+    for (let i = 0; i <= rows; i++)
+      for (let j = 0; j <= cols; j++) corners.push({ i, j, c: [f(i - 1, j - 1), f(i - 1, j), f(i, j - 1), f(i, j)] });
+    const DIR = [[-1, -1], [1, -1], [-1, 1], [1, 1]];   // 左上, 右上, 左下, 右下 の向き
+    const ty = (i, j) => {
+      const n = [f(i - 1, j - 1), f(i - 1, j), f(i, j - 1), f(i, j)].filter(Boolean).length;
+      return n === 1 ? 1 : n === 3 ? 2 : 0;   // 0:直線 1:凸 2:凹
+    };
+    return { rows, cols, f, corners, DIR, ty };
+  }
+  // 角度 a→b の短い方(1/4周)で円弧を描く
+  function arcShort(c, ox, oy, r, a, b) {
+    let d = b - a;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d <= -Math.PI) d += 2 * Math.PI;
+    c.arc(ox, oy, r, a, b, d < 0);
+  }
+
+  // ピースを描画(巨大ピースは4つの大セル)。round=true で外側の角も内側のへこみ角も丸くする
+  function drawPiece(c, m, s, px, py, size, color, round) {
+    if (!round) {
+      for (let r = 0; r < m.length; r += s)
+        for (let q = 0; q < m[r].length; q += s)
+          if (m[r][q]) cell(c, px + q * size, py + r * size, size * s, color);
+      return;
+    }
+    const G = pieceGrid(m, s), B = size * s, R = size * .22, Rc = R + 1, Rv = R * .6, Rf = Math.max(1, Rv - 1);   // Rv: へこみ角の半径(外側の6割)
+    c.fillStyle = color;
+    for (let i = 0; i < G.rows; i++)
+      for (let j = 0; j < G.cols; j++) {
+        if (!G.f(i, j)) continue;
+        const t = !G.f(i - 1, j), b = !G.f(i + 1, j), l = !G.f(i, j - 1), r = !G.f(i, j + 1);
+        c.beginPath();
+        c.roundRect(px + j * B, py + i * B, B, B, [t && l ? Rc : 0, t && r ? Rc : 0, b && r ? Rc : 0, b && l ? Rc : 0]);
+        c.fill();
+      }
+    // へこみ角: 空きマス側の角に丸いすみ肉(フィレット)を足す
+    for (const { i, j, c: cs } of G.corners) {
+      if (cs.filter(Boolean).length !== 3) continue;
+      const [sx, sy] = G.DIR[cs.indexOf(false)];
+      const jx = px + j * B, jy = py + i * B, ox = jx + sx * Rf, oy = jy + sy * Rf;
+      c.beginPath();
+      c.moveTo(jx, jy); c.lineTo(jx + sx * Rf, jy);
+      arcShort(c, ox, oy, Rf, Math.atan2(-sy, 0), Math.atan2(0, -sx));
+      c.closePath(); c.fill();
+    }
+  }
+
+  // 落下中の駒の外周を白で縁取る(外側もへこみ角も丸く。隣り合うセルの間には線を引かない)
+  function outlinePiece(c, m, s, px, py, size) {
+    const G = pieceGrid(m, s), B = size * s, R = size * .22, Rv = R * .6, P = Math.PI;   // Rv: へこみ角の半径(外側の6割)
+    c.strokeStyle = '#fff'; c.lineWidth = 2; c.lineCap = 'butt';
+    c.beginPath();
+    const st = t => t === 0 ? -1 : t === 1 ? R : Rv - 2;     // 辺の始まり側の位置補正(直線/凸/凹)
+    const en = t => t === 0 ? 1 : t === 1 ? -R : 2 - Rv;     // 辺の終わり側の位置補正
+    for (let i = 0; i < G.rows; i++)
+      for (let j = 0; j < G.cols; j++) {
+        if (!G.f(i, j)) continue;
+        const x = px + j * B + 1, y = py + i * B + 1, w = B - 2;
+        if (!G.f(i - 1, j)) { c.moveTo(x + st(G.ty(i, j)), y);         c.lineTo(x + w + en(G.ty(i, j + 1)), y); }
+        if (!G.f(i + 1, j)) { c.moveTo(x + st(G.ty(i + 1, j)), y + w); c.lineTo(x + w + en(G.ty(i + 1, j + 1)), y + w); }
+        if (!G.f(i, j - 1)) { c.moveTo(x, y + st(G.ty(i, j)));         c.lineTo(x, y + w + en(G.ty(i + 1, j))); }
+        if (!G.f(i, j + 1)) { c.moveTo(x + w, y + st(G.ty(i, j + 1))); c.lineTo(x + w, y + w + en(G.ty(i + 1, j + 1))); }
+      }
+    for (const { i, j, c: cs } of G.corners) {
+      const n = cs.filter(Boolean).length, jx = px + j * B, jy = py + i * B;
+      if (n === 1) {          // 凸の角
+        const [fx, fy] = G.DIR[cs.indexOf(true)];
+        const ox = jx + fx * (1 + R), oy = jy + fy * (1 + R), a = Math.atan2(0, -fx), b = Math.atan2(-fy, 0);
+        c.moveTo(ox + R * Math.cos(a), oy + R * Math.sin(a));
+        arcShort(c, ox, oy, R, a, b);
+      } else if (n === 3) {   // 凹の角
+        const [sx, sy] = G.DIR[cs.indexOf(false)];
+        const cx = jx - sx, cy = jy - sy, ox = cx + sx * Rv, oy = cy + sy * Rv, a = Math.atan2(-sy, 0), b = Math.atan2(0, -sx);
+        c.moveTo(ox + Rv * Math.cos(a), oy + Rv * Math.sin(a));
+        arcShort(c, ox, oy, Rv, a, b);
+      }
+    }
+    c.stroke();
+  }
+
+  // ---- 背景: 盤面の外(ウィンドウ全体)に描く晴れの草原 ----
+  const bgCv = document.getElementById('bg'), bctx = bgCv.getContext('2d');
+  const vw = () => document.documentElement.clientWidth, vh = () => document.documentElement.clientHeight;
+  const fitBg = () => { bgCv.width = vw(); bgCv.height = vh(); };
+  fitBg(); addEventListener('resize', fitBg);
+  let seed = (Date.now() % 2147483646) + 1;   // 読み込むたびに雲の形が変わる
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // 雲: 形は1つずつ違う(左右非対称)。thr 以上の曇り具合で現れる(thr<0 は常に浮かぶ白い雲)
+  // 円の半径: 小さい円は1.7倍、大きい円(30以上)はそのまま、間は滑らかにつなぐ
+  const grow = r => r * (1.7 - .7 * Math.min(1, Math.max(0, (r - 10) / 20)));
+  const mkPuffs = () => {
+    let out;
+    for (let t = 0; t < 300; t++) {
+      const n = 3 + Math.floor(rnd() * 7);
+      out = []; let x = 0;
+      for (let i = 0; i < n; i++) {
+        const r = grow(10 + rnd() * 26);
+        out.push([x, -r * (.35 + rnd() * .8), r]);
+        x += r * (.55 + rnd() * .6);
+      }
+      for (let h = 2 + Math.floor(rnd() * 3); h > 0; h--) {   // 上に盛り上がる大きめの円
+        const r = grow(20 + rnd() * 20), hx = (.2 + rnd() * .6) * x;
+        out.push([hx, -r * (1 + rnd() * .6) - 6, r]);
+      }
+      const l = Math.min(...out.map(([x, , r]) => x - r)), rt = Math.max(...out.map(([x, , r]) => x + r));
+      const tp = Math.min(...out.map(([, y, r]) => y - r)), bt = Math.max(...out.map(([, y, r]) => y + r));
+      const ratio = (rt - l) / (bt - tp);
+      if (ratio >= 1.4 && ratio <= 2.6) break;   // 横:縦 = 約1.4:1〜2.6:1
+    }
+    return out;
+  };
+  const clouds = [
+    [.08, .10, 1, -1, .10], [.62, .22, .8, -1, .07],
+  ].map(([x, y, s, thr, v]) => ({ x, y, s, thr, v, puffs: mkPuffs() }));
+  const drops = Array.from({ length: 41 }, () => ({ x: rnd(), y: rnd(), v: 24 + rnd() * 16 }));
+  const mix = (a, b, k) => Math.round(a + (b - a) * k);
+  function drawCloud(c, x, y, k, puffs, col, a) {
+    c.globalAlpha = a; c.fillStyle = col;
+    for (const [dx, dy, r] of puffs) { c.beginPath(); c.arc(x + dx * k, y + dy * k, r * k, 0, 6.283); c.fill(); }
+    c.globalAlpha = 1;
+  }
+  function drawBackground(t) {
+    cloud += (tCloud - cloud) * .02; rain += (tRain - rain) * .03;
+    const c = bctx, W = bgCv.width, H = bgCv.height, k = H / 700, hz = H * .78;
+    const sky = c.createLinearGradient(0, 0, 0, hz);
+    const top = `rgb(${mix(20, 70, cloud)},${mix(130, 80, cloud)},${mix(255, 100, cloud)})`;
+    sky.addColorStop(0, top);
+    const dk = .7 * (1 - .35 * cloud) * (1 - .88 * rain) * (1 - .85 * rain);   // 暗幕を反映した空の明るさに対し、盤面はさらに7割
+    board.style.background = `rgb(${mix(20, 70, cloud) * dk | 0},${mix(130, 80, cloud) * dk | 0},${mix(255, 100, cloud) * dk | 0})`;   // 盤面の背景は空の一番濃い色より暗く
+    document.documentElement.style.setProperty('--bb', board.style.background);   // MENUボタンは盤面と同じ色
+    document.documentElement.style.setProperty('--pb', board.style.background.replace('rgb(', 'rgba(').replace(')', ', .75)'));   // メニュー背景: 盤面と同じ色の75%
+    const kb = cloud * cloud;   // 空の下側は上側より遅れて暗くなる(上半分が先)
+    sky.addColorStop(1, `rgb(${mix(110, 135, kb)},${mix(200, 145, kb)},${mix(255, 155, kb)})`);
+    c.fillStyle = sky; c.fillRect(0, 0, W, H);
+    // 草原: 遠く(地平線側)だけ3段階で濃くなり、手前は単色
+    const far = ['#88f45e', '#69e548', '#4cd237'], fhs = [.075, .105, .135].map(r => (H - hz) * r);   // 手前の段ほど少し太い
+    c.fillStyle = '#36bd2c'; c.fillRect(0, hz, W, H - hz);
+    let fy = hz;
+    far.forEach((col, i) => { c.fillStyle = col; c.fillRect(0, fy, W, fhs[i] + 1); fy += fhs[i]; });
+    // 雲
+    const kc = Math.min(1, cloud * 1.8);   // 雲は空より先に雨雲の色になる
+    const col = `rgb(${mix(216, 58, kc)},${mix(233, 60, kc)},${mix(255, 68, kc)})`;   // 晴れの雲はほんの少し青みがかった白
+    board.style.borderColor = col;   // 盤面の枠は雲と同じ色(曇り・雨でも連動)
+    for (const cl of clouds) {
+      if (cl.thr >= 0 && cloud <= cl.thr) continue;
+      const a = 1;
+      const span = W + 450 * k, pos = cl.x * W + t * cl.v / 16 * k, lap = Math.floor(pos / span);
+      if (cl.lap !== lap) { if (cl.lap !== undefined) cl.puffs = mkPuffs(); cl.lap = lap; }   // 一周するたびに形を変える
+      const x = (pos % span) - 225 * k;
+      drawCloud(c, x, cl.y * H, k * cl.s * 1.5, cl.puffs, col, a);
+    }
+    const og = c.createLinearGradient(0, 0, 0, H);
+    og.addColorStop(0, `rgba(30,40,60,${.35 * cloud})`); og.addColorStop(1, `rgba(30,40,60,${.35 * kb})`);
+    c.fillStyle = og; c.fillRect(0, 0, W, H);
+    c.fillStyle = `rgba(4,6,12,${.88 * rain})`; c.fillRect(0, 0, W, H);   // 雨の間は空も芝生もかなり暗く
+    // 雨
+    if (rain > .02) {
+      c.strokeStyle = `rgba(235,245,255,${.5 * rain})`; c.lineWidth = 1.3;
+      const n = Math.floor(drops.length * rain);
+      c.beginPath();
+      for (let i = 0; i < n; i++) {
+        const d = drops[i];
+        d.y += d.v * k / H; d.x -= d.v * .03 * k / W;
+        if (d.y > 1) { d.y = -.03; d.x = rnd(); }
+        if (d.x < 0) d.x += 1;
+        const px = d.x * W, py = d.y * H;
+        const len = 140 * k;
+        c.moveTo(px, py); c.lineTo(px - .03 * len, py + len);   // 落ちる向きと同じ傾き
+      }
+      c.stroke();
+    }
+  }
+
+  function draw(t) {
+    drawBackground(t || 0);
+    ctx.clearRect(0, 0, board.width, board.height);
+    // グリッド線: 晴れは背景より暗く、雨で背景が暗くなるにつれ背景より明るい線にする
+    ctx.lineWidth = 1;
+    for (const [col, al] of [['0,0,0', .12 * (1 - rain)], ['255,255,255', .08 * rain]]) {
+      if (al <= .005) continue;
+      ctx.strokeStyle = `rgba(${col},${al})`;
+      ctx.beginPath();
+      for (let x = 1; x < COLS; x++) { ctx.moveTo(x * CELL + .5, 0); ctx.lineTo(x * CELL + .5, board.height); }
+      for (let y = 1; y < ROWS; y++) { ctx.moveTo(0, y * CELL + .5); ctx.lineTo(board.width, y * CELL + .5); }
+      ctx.stroke();
+    }
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (grid[r][c]) {
+          const on = (rr, cc) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && grid[rr][cc];
+          cell(ctx, c * CELL, r * CELL, CELL, grid[r][c], { t: !on(r - 1, c), l: !on(r, c - 1), r: !on(r, c + 1), b: !on(r + 1, c) });
+        }
+    if (!over) {
+      let gy = cur.y;
+      while (!hit(cur.m, cur.x, gy + 1)) gy++;
+      ctx.globalAlpha = .22;
+      drawPiece(ctx, cur.m, cur.s, cur.x * CELL, gy * CELL, CELL, cur.color);
+      ctx.globalAlpha = 1;
+    }
+    drawPiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL, cur.color, true);
+    if (!over) outlinePiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL);
+
+    // next
+    nctx.clearRect(0, 0, nextCv.width, nextCv.height);
+    const ns = 22;
+    const base = ROT[next.name][0].filter(row => row.some(Boolean));          // 空の段・列を除いて中央に置く
+    const cols = base[0].map((_, i) => i).filter(i => base.some(row => row[i]));
+    const m = scale(base.map(row => cols.map(i => row[i])), next.s);
+    const ox = (nextCv.width - m[0].length * ns) / 2, oy = (nextCv.height - m.length * ns) / 2;
+    drawPiece(nctx, m, next.s, ox, oy, ns, next.color, true);
+    outlinePiece(nctx, m, next.s, ox, oy, ns);
+
+    if (over || (paused && !menuOpen)) {
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, 0, board.width, board.height);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.font = '32px Yodaka, system-ui'; ctx.fillText(over ? 'GAME OVER' : 'PAUSE', board.width / 2, board.height / 2 - 6);
+      ctx.font = '14px Yodaka, system-ui';
+      ctx.fillText(over ? (touchMode ? 'TAP TO RESTART' : 'PRESS ENTER TO RESTART') : 'ESC / P TO RESUME', board.width / 2, board.height / 2 + 22);
+    }
+  }
+
+  function loop(t) {
+    pollPad(t);
+    if (!titleOpen && !over && !paused && t - dropAt >= interval()) {
+      dropAt = t;
+      if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
+    }
+    draw(t);
+    requestAnimationFrame(loop);
+  }
+
+  // ================= 入力 =================
+  const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch=1/.test(location.search);
+  const store = {
+    get(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  let gMode = store.get('pr_mode', 'buttons') === 'flick' ? 'flick' : 'buttons';
+  let menuOpen = false, menuWasPaused = false;
+  let titleOpen = true, howtoOpen = false;   // タイトル画面 / HOW TO の表示中
+
+  const ACTIONS = {
+    left: () => move(-1), right: () => move(1), rotL: () => rotate(false), rotR: () => rotate(true),
+    soft: softDrop, hard: hardDrop, swap: swapNext,
+  };
+  function act(name) {
+    if (titleOpen || menuOpen || over || paused) return;
+    ACTIONS[name](); updateHud();
+  }
+  function togglePause() {
+    if (over || menuOpen || titleOpen) return;
+    paused = !paused; dropAt = performance.now();
+  }
+
+  // ---- メニュー ----
+  const $ = id => document.getElementById(id);
+  const menuEl = $('menu'), menuBody = $('menuBody'), padEl = $('pad');
+  const rows = list => list.map(([k, v]) => `<div class="row"><b>${k}</b><span>${v}</span></div>`).join('');
+  const PAD_HELP = rows([
+    ['D-PAD / STICK', 'MOVE / DROP'], ['A', 'ROTATE RIGHT'], ['B / X', 'ROTATE LEFT'],
+    ['UP / RT', 'HARD DROP'], ['Y / LB / RB', 'SWAP WITH NEXT'], ['START', 'PAUSE / RESTART'], ['BACK', 'MENU'],
+  ]);
+  function renderMenu() {
+    let h = '';
+    if (touchMode) {
+      h += `<h3>CONTROL MODE</h3><div class="seg">
+        <button type="button" data-mode="buttons" class="${gMode === 'buttons' ? 'on' : ''}">BUTTONS</button>
+        <button type="button" data-mode="flick" class="${gMode === 'flick' ? 'on' : ''}">FLICK</button></div><div class="desc">`;
+      h += gMode === 'buttons'
+        ? rows([['LEFT / RIGHT', 'MOVE (HOLD TO REPEAT)'], ['ROT L / ROT R', 'ROTATE LEFT / RIGHT'], ['DROP', 'DROP (HOLD TO REPEAT)'],
+                ['HARD DROP', 'DROP INSTANTLY'], ['SWAP', 'SWAP WITH NEXT']]) + '<div class="note">PORTRAIT: BUTTONS AT THE BOTTOM. LANDSCAPE: MOVE / DROP ON THE LEFT, ROTATE / HARD DROP / SWAP ON THE RIGHT.</div>'
+        : rows([['DRAG LEFT / RIGHT', 'MOVE'], ['TAP', 'ROTATE RIGHT'], ['TWO-FINGER TAP', 'ROTATE LEFT'],
+                ['DRAG DOWN', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']]) + '<div class="note">OPERATE ANYWHERE ON THE SCREEN. TAP TO RESTART AFTER GAME OVER.</div>';
+      h += '</div>';
+    } else {
+      h += '<h3>KEYBOARD</h3>' + rows([
+        ['4 / 6', 'MOVE'], ['1, 5 / 3', 'ROTATE LEFT / RIGHT'], ['2', 'DROP'], ['0', 'HARD DROP'],
+        ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['ENTER', 'RESTART'],
+      ]) + '<div class="note">ARROWS / Z / X / SPACE / C ALSO WORK.</div>';
+    }
+    h += '<h3>GAMEPAD</h3>' + PAD_HELP;
+    menuBody.innerHTML = h;
+  }
+  function openMenu() {
+    if (menuOpen || titleOpen) return;
+    menuOpen = true; menuWasPaused = paused;
+    if (!over) paused = true;
+    renderMenu(); menuEl.hidden = false;
+  }
+  function closeMenu() {
+    if (!menuOpen) return;
+    menuOpen = false; menuEl.hidden = true;
+    if (!menuWasPaused && !over) { paused = false; dropAt = performance.now(); }
+  }
+  $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
+  $('closeBtn').addEventListener('click', closeMenu);
+  $('restartBtn').addEventListener('click', () => { closeMenu(); reset(); });
+  menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
+  menuBody.addEventListener('click', e => {
+    const b = e.target.closest('[data-mode]');
+    if (!b) return;
+    gMode = b.dataset.mode; store.set('pr_mode', gMode);
+    renderMenu(); applyMode();
+  });
+
+  // ---- 画面の大きさに合わせて表示を縮小(スマホ縦持ち対応) ----
+  const wrapEl = $('wrap');
+  let viewScale = 1;
+  function layout() {
+    const VW = vw(), VH = vh();
+    const buttons = touchMode && gMode === 'buttons';
+    const land = buttons && VW > VH;   // 横持ち: ボタンを左右に配置
+    document.body.classList.toggle('land', land);
+    wrapEl.classList.toggle('narrow', VW < 720);
+    wrapEl.style.transform = 'none';
+    const w = wrapEl.offsetWidth, h = wrapEl.offsetHeight;
+    const topR = land ? 36 : touchMode ? 44 : 84, padH = (buttons && !land) ? padEl.offsetHeight : 0;
+    const availH = VH - padH - topR, availW = VW - (land ? 2 * 214 : 0);
+    viewScale = Math.min(1.1, availW / w, availH / h);   // 画面に余裕があれば全体を1.1倍で表示
+    wrapEl.style.top = Math.max(topR, topR + (availH - h * viewScale) / 2) + 'px';
+    wrapEl.style.transform = `translateX(-50%) scale(${viewScale})`;
+    fitBg();
+  }
+  function applyMode() {
+    document.body.classList.toggle('touch', touchMode);
+    padEl.hidden = !(touchMode && gMode === 'buttons');
+    layout();
+  }
+  addEventListener('resize', layout);
+  if (window.visualViewport) visualViewport.addEventListener('resize', layout);
+  addEventListener('orientationchange', () => setTimeout(layout, 200));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+
+  // ---- タイトル画面 / HOW TO ----
+  const titleEl = $('title'), howtoEl = $('howto');
+  document.body.classList.add('titleOn');
+  // 言語: ブラウザが日本語なら日本語(?lang=en / ?lang=ja で上書き可)
+  const langQ = (new URLSearchParams(location.search).get('lang') || '').toLowerCase();
+  const isJa = langQ ? langQ.startsWith('ja') : ((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase().startsWith('ja');
+  // タイトル: 日本語は画像、英語は「Partly / Rainy」の2行をヨダカフォントで表示
+  if (!isJa) { $('titleImg').hidden = true; $('titleText').hidden = false; }
+  $('titleImg').addEventListener('error', () => { $('titleImg').hidden = true; $('titleText').hidden = false; });
+  // 画像は整数倍だけ拡大して、ぼやけさせない
+  function fitTitle() {
+    const im = $('titleImg');
+    if (!im.naturalWidth) return;
+    const maxW = Math.min(vw() * .86, 760), maxH = vh() * .4;
+    const k = Math.max(1, Math.floor(Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight)));
+    im.style.width = im.naturalWidth * k + 'px'; im.style.height = im.naturalHeight * k + 'px';
+  }
+  $('titleImg').addEventListener('load', fitTitle);
+  addEventListener('resize', fitTitle);
+  if ($('titleImg').complete) fitTitle();
+  function startGame() {
+    if (!titleOpen) return;
+    titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn');
+    reset(); layout();
+  }
+  function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; }
+  function closeHowto() { howtoOpen = false; howtoEl.hidden = true; }
+  // 日本語環境ならヘルプも日本語で表示
+  $('howtoPanel').classList.toggle('ja', isJa);
+  $('howtoBack').textContent = isJa ? '戻る' : 'Back';
+  $('startBtn').addEventListener('click', startGame);
+  $('howtoBtn').addEventListener('click', openHowto);
+  $('howtoBack').addEventListener('click', closeHowto);
+  howtoEl.addEventListener('click', e => { if (e.target === howtoEl) closeHowto(); });
+
+  // ---- キーボード ----
+  addEventListener('keydown', e => {
+    const k = e.code;
+    if (howtoOpen) { if (k === 'Escape' || k === 'Enter') { closeHowto(); e.preventDefault(); } return; }
+    if (titleOpen) { if (k === 'Enter' || k === 'NumpadEnter' || k === 'Space') { startGame(); e.preventDefault(); } return; }
+    if (menuOpen) { if (k === 'Escape') { closeMenu(); e.preventDefault(); } return; }
+    if (k === 'Enter' || k === 'NumpadEnter') { reset(); e.preventDefault(); return; }
+    if (k === 'KeyP' || k === 'Escape') { togglePause(); e.preventDefault(); return; }
+    const map = {
+      Numpad4: 'left', ArrowLeft: 'left', Numpad6: 'right', ArrowRight: 'right',
+      Numpad1: 'rotL', Numpad5: 'rotL', KeyZ: 'rotL', Numpad3: 'rotR', KeyX: 'rotR', ArrowUp: 'rotR',
+      Numpad2: 'soft', ArrowDown: 'soft', Numpad0: 'hard', Space: 'hard',
+      Numpad7: 'swap', Numpad8: 'swap', Numpad9: 'swap', KeyC: 'swap',
+    };
+    if (map[k]) { act(map[k]); e.preventDefault(); }
+  });
+
+  // ---- 画面ボタン(長押しで連続) ----
+  const REPEAT = { left: 60, right: 60, soft: 45 };
+  padEl.querySelectorAll('button').forEach(btn => {
+    let t1 = null, t2 = null;
+    const stop = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = null; btn.classList.remove('down'); };
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const a = btn.dataset.act;
+      btn.classList.add('down'); act(a);
+      if (REPEAT[a]) t1 = setTimeout(() => { t2 = setInterval(() => act(a), REPEAT[a]); }, 170);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  });
+
+  // ---- フリック(スワイプ)操作 ----
+  let g = null;
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !e.target.closest('#menuBtn, #menu, #title, #howto');
+  document.addEventListener('touchstart', e => {
+    if (!gestureOk(e)) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if (!g) g = { x0: t.clientX, y0: t.clientY, ax: t.clientX, ay: t.clientY, t0: performance.now(), moved: false, fingers: e.touches.length };
+    else g.fingers = Math.max(g.fingers, e.touches.length);
+  }, { passive: false });
+  document.addEventListener('touchmove', e => {
+    if (!g || !gestureOk(e)) return;
+    e.preventDefault();
+    const t = e.touches[0], cell = CELL * viewScale;
+    while (t.clientX - g.ax >= cell) { act('right'); g.ax += cell; g.moved = true; }
+    while (g.ax - t.clientX >= cell) { act('left'); g.ax -= cell; g.moved = true; }
+    while (t.clientY - g.ay >= cell) { act('soft'); g.ay += cell; g.moved = true; }
+  }, { passive: false });
+  document.addEventListener('touchend', e => {
+    if (!g) return;
+    e.preventDefault();
+    if (e.touches.length) return;
+    const t = e.changedTouches[0], dt = performance.now() - g.t0;
+    const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
+    if (over) { if (!g.moved && dt < 400) reset(); }
+    else if (dt < 350 && dy > 60 && dy > Math.abs(dx)) act('hard');
+    else if (dt < 350 && -dy > 60 && -dy > Math.abs(dx)) act('swap');
+    else if (!g.moved && dt < 300 && Math.hypot(dx, dy) < 12) act(g.fingers >= 2 ? 'rotL' : 'rotR');
+    g = null;
+  }, { passive: false });
+  document.addEventListener('touchcancel', () => { g = null; });
+
+  // ---- ジョイパッド ----
+  const padPrev = {}, padNext = {};
+  function pollPad(t) {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let p = null;
+    for (const x of pads) if (x && x.connected) { p = x; break; }
+    if (!p) return;
+    const B = i => !!(p.buttons[i] && p.buttons[i].pressed);
+    const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+    const st = {
+      left: B(14) || ax < -.5, right: B(15) || ax > .5, soft: B(13) || ay > .6,
+      rotR: B(0), rotL: B(1) || B(2), hard: B(12) || B(7), swap: B(3) || B(4) || B(5), pause: B(9), menu: B(8),
+    };
+    for (const k in st) {
+      const was = padPrev[k]; padPrev[k] = st[k];
+      if (!st[k]) continue;
+      let fire = false;
+      if (!was) { fire = true; padNext[k] = t + 170; }
+      else if (REPEAT[k] && t >= padNext[k]) { fire = true; padNext[k] = t + REPEAT[k]; }
+      if (!fire) continue;
+      if (howtoOpen) { if (k === 'rotL' || k === 'pause') closeHowto(); continue; }
+      if (titleOpen) { if (k === 'pause' || k === 'rotR') startGame(); continue; }
+      if (menuOpen) { if (k === 'rotL' || k === 'pause' || k === 'menu') closeMenu(); continue; }
+      if (k === 'menu') openMenu();
+      else if (k === 'pause') { if (over) reset(); else togglePause(); }
+      else act(k);
+    }
+  }
+
+  reset();
+  applyMode();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
