@@ -41,11 +41,32 @@
   #titleText { text-transform:none; font-size:clamp(56px,16vw,150px); letter-spacing:.06em; color:#fff; text-shadow:4px 4px 0 rgba(0,0,0,.35); text-align:center; line-height:1.05; }
   .tbtn { font:inherit; font-size:28px; letter-spacing:.1em; color:#fff; background:var(--bb, #0a0c11); border:2px solid #fff; border-radius:12px;
           padding:14px 44px; min-width:240px; cursor:pointer; }
+  .tbtn { width:min(280px,80vw); padding-left:0; padding-right:0; }   /* タイトルのボタンは同じ幅 */
   .tbtn:hover { filter:brightness(1.25); }
   #howto { position:fixed; inset:0; z-index:35; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #howtoPanel { background:rgba(10,12,17,.88); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(560px,100%); max-height:100%;
                 overflow:auto; padding:18px 22px; font:14px/1.65 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
                 -webkit-user-select:text; user-select:text; }
+  /* ---- ランキング / スコア登録 ---- */
+  #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
+               overflow:auto; padding:18px 22px; font:15px/1.6 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
+               -webkit-user-select:text; user-select:text; }
+  #rankPanel h2 { margin:0 0 8px; font-size:22px; font-weight:600; color:#fff; }
+  #rankPanel .stats { display:grid; grid-template-columns:auto 1fr; gap:2px 14px; margin:6px 0 12px; }
+  #rankPanel .stats b { color:#fff; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  #rankPanel input { width:100%; font:inherit; font-size:18px; padding:9px 12px; color:#fff; background:rgba(255,255,255,.08); border:1px solid #6b7894; border-radius:6px;
+                     -webkit-user-select:text; user-select:text; touch-action:auto; }
+  #rankPanel table { width:100%; border-collapse:collapse; margin:8px 0; font-variant-numeric:tabular-nums; }
+  #rankPanel td { padding:3px 6px; border-bottom:1px solid #2c3550; }
+  #rankPanel td:first-child { width:2.2em; color:#9fb4e8; text-align:right; }
+  #rankPanel td:last-child { text-align:right; color:#fff; }
+  #rankPanel tr.me td { background:rgba(70,130,255,.28); }
+  #rankPanel .msg { margin:8px 0; color:#ffd479; min-height:1.6em; }
+  #rankPanel .rbtns { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
+  #rankPanel button { font:inherit; font-size:15px; color:#fff; background:rgba(255,255,255,.1); border:1px solid #6b7894; border-radius:6px; padding:8px 16px; cursor:pointer; }
+  #rankPanel button.main { background:#2f6dff; border-color:#8fb2ff; }
+  #rankPanel button:disabled { opacity:.5; cursor:default; }
   #howtoPanel [data-lang] { display:none; }
   #howtoPanel:not(.ja) [data-lang=en], #howtoPanel.ja [data-lang=ja] { display:block; }
   #howtoPanel h2 { margin:0 0 8px; font-size:20px; font-weight:600; color:#fff; }
@@ -128,8 +149,10 @@
   <img id="titleImg" src="title.png" alt="Partly Rainy">
   <div id="titleText" hidden>Partly<br>Rainy</div>
   <button class="tbtn" id="startBtn" type="button">START</button>
+  <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
 </div>
+<div id="rank" hidden><div id="rankPanel"></div></div>
 <div id="howto" hidden>
   <div id="howtoPanel">
     <div data-lang="en">
@@ -263,6 +286,8 @@
 <script>
 (() => {
   const COLS = 10, ROWS = 20, CELL = 30;
+  // ランキングサーバー(server/README.md の手順で公開した Worker の URL。末尾に / を付けない)。空なら機能オフ。
+  const SCORE_API = 'https://partly-rainy-scores.haradadaisuke.workers.dev';
   const BIG_EVERY = 10;          // 10個目ごとに倍サイズ
   const board = document.getElementById('board'), ctx = board.getContext('2d');
   const nextCv = document.getElementById('next'), nctx = nextCv.getContext('2d');
@@ -279,6 +304,7 @@
   };
   const NAMES = Object.keys(SHAPES);
 
+  let overShown = false;
   let grid, cur, next, bag, count, score, lines, level, over, paused, dropAt, last;
   let cloud = 0, rain = 0, tCloud = 0, tRain = 0;   // 天気(0〜1)
 
@@ -335,7 +361,7 @@
   function reset() {
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     bag = []; count = Number(new URLSearchParams(location.search).get('count')) || 0;   // ?count=9 で途中から開始(確認用)
-    score = 0; lines = 0; level = 1; over = false; paused = false;
+    score = 0; lines = 0; level = 1; over = false; paused = false; overShown = false;
     cur = newPiece(); place(cur);
     next = newPiece();
     last = performance.now(); dropAt = 0; cloud = rain = 0;
@@ -683,6 +709,7 @@
       if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
     }
     draw(t);
+    if (over && !overShown) { overShown = true; if (API && score > 0 && !titleOpen) setTimeout(openGameOver, 900); }
     requestAnimationFrame(loop);
   }
 
@@ -694,7 +721,7 @@
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false;   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false;   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -763,7 +790,10 @@
     if (!bgm.on) return;
     if (!ensureCtx()) bgm.failed = true;
     if (bgm.failed || !bgm.ctx) { bgmFallback(); return; }
-    bgm.mode = bgmWanted();
+    // 最初(または音楽をオンにした直後)だけ、今の天気の曲に合わせる。
+    // 鳴っている最中に書き換えると、天気の変化と曲の切り替えの順番が崩れ、前の曲が鳴り続けてしまう。
+    const playing = Object.values(bgm.tracks).some(t => t.src);
+    if (!playing) bgm.mode = bgmWanted();
     // 今の天気の曲を最優先で読み込み、続けて残りも読み込む
     const order = [bgm.mode, ...Object.keys(BGM_FILES).filter(n => n !== bgm.mode)];
     order.reduce((p, n) => p.then(() => bgmLoadTrack(n)), Promise.resolve());
@@ -1009,6 +1039,7 @@
   // ---- キーボード ----
   addEventListener('keydown', e => {
     const k = e.code;
+    if (rankOpen) { if (k === 'Escape') { closeRank(); e.preventDefault(); } return; }
     if (howtoOpen) { if (k === 'Escape' || k === 'Enter') { closeHowto(); e.preventDefault(); } return; }
     if (titleOpen) { if (k === 'Enter' || k === 'NumpadEnter' || k === 'Space') { startGame(); e.preventDefault(); } return; }
     if (menuOpen) { if (k === 'Escape') { closeMenu(); e.preventDefault(); } return; }
@@ -1040,7 +1071,7 @@
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !e.target.closest('#menuBtn, #menu, #title, #howto');
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
@@ -1104,6 +1135,7 @@
       if (!was) { fire = true; padNext[k] = t + 170; }
       else if (REPEAT[k] && t >= padNext[k]) { fire = true; padNext[k] = t + REPEAT[k]; }
       if (!fire) continue;
+      if (rankOpen) { if (k === 'rotL') closeRank(); continue; }
       if (howtoOpen) { if (k === 'rotL' || k === 'pause') closeHowto(); continue; }
       if (titleOpen) { if (k === 'pause' || k === 'rotR') startGame(); continue; }
       if (menuOpen) { if (k === 'rotL' || k === 'pause' || k === 'menu') closeMenu(); continue; }
@@ -1111,6 +1143,90 @@
       else if (k === 'pause') { if (over) reset(); else togglePause(); }
       else act(k);
     }
+  }
+
+  // ================= ランキング(スコア登録) =================
+  const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
+  const rankEl = $('rank'), rankPanel = $('rankPanel');
+  const RT = {
+    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back', gameover: 'Game over',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Your name', submit: 'Submit', skip: 'Skip', sending: 'Sending...',
+          rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet.',
+          errors: { too_fast: 'Please wait a moment and try again.', bad_name: 'Please enter a name.', default: 'Could not submit the score.' } },
+    ja: { ranking: 'ランキング', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'もう一度', back: '戻る', gameover: 'ゲームオーバー',
+          score: 'スコア', lines: 'ライン', level: 'レベル', name: 'なまえ', submit: '登録する', skip: 'しない', sending: '送信中...',
+          rank: n => `${n}位になりました!`, again: 'もう一度あそぶ', title: 'Back To Title', empty: 'まだスコアがありません。',
+          errors: { too_fast: '少し待ってから、もう一度送ってください。', bad_name: 'なまえを入れてください。', default: 'スコアを登録できませんでした。' } },
+  };
+  const rt = () => RT[isJa ? 'ja' : 'en'];
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  async function fetchTop(n = 10) {
+    const r = await fetch(API + '/scores?limit=' + n, { cache: 'no-store' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    return (await r.json()).scores || [];
+  }
+  function listHtml(scores, myRank) {
+    if (!scores.length) return `<p>${rt().empty}</p>`;
+    return '<table>' + scores.map((r, i) => `<tr${myRank === i + 1 ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.score}</td></tr>`).join('') + '</table>';
+  }
+  function showRank() { rankOpen = true; rankEl.hidden = false; }
+  function closeRank() { rankOpen = false; rankEl.hidden = true; }
+
+  async function openRanking() {   // タイトル画面の RANKING ボタン
+    showRank();
+    rankPanel.innerHTML = `<h2>${rt().ranking}</h2><p>${rt().loading}</p>`;
+    try {
+      const scores = await fetchTop();
+      rankPanel.innerHTML = `<h2>${rt().ranking}</h2>${listHtml(scores)}<div class="rbtns"><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
+    } catch (e) {
+      rankPanel.innerHTML = `<h2>${rt().ranking}</h2><p class="msg">${rt().fail}</p><div class="rbtns"><button id="rankRetry" type="button">${rt().retry}</button><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
+      $('rankRetry').onclick = openRanking;
+    }
+    $('rankClose').onclick = closeRank;
+  }
+
+  function openGameOver() {   // ゲームオーバー後: 名前を入れて登録
+    if (!over || !API || titleOpen || rankOpen || menuOpen) return;
+    const T = rt(), pieces = count - 1, myScore = score, myLines = lines, myLevel = level;
+    let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
+    showRank();
+    rankPanel.innerHTML = `<h2>${T.gameover}</h2>
+      <div class="stats"><span>${T.score}</span><b>${myScore}</b><span>${T.lines}</span><b>${myLines}</b><span>${T.level}</span><b>${myLevel}</b></div>
+      <input id="nameIn" maxlength="12" autocomplete="off" placeholder="${T.name}" value="${esc(lastName)}">
+      <div class="msg" id="rankMsg"></div>
+      <div class="rbtns"><button id="goSkip" type="button">${T.skip}</button><button class="main" id="goSubmit" type="button">${T.submit}</button></div>`;
+    const input = $('nameIn'), msg = $('rankMsg'), submit = $('goSubmit');
+    const finish = async rank => {   // 登録のあと(または登録しないとき)の画面
+      let scores = [];
+      try { scores = await fetchTop(); } catch (e) {}
+      rankPanel.innerHTML = `<h2>${rank ? T.rank(rank) : T.ranking}</h2>${listHtml(scores, rank)}
+        <div class="rbtns"><button id="goTitle" type="button">${T.title}</button><button class="main" id="goAgain" type="button">${T.again}</button></div>`;
+      $('goAgain').onclick = () => { closeRank(); reset(); };
+      $('goTitle').onclick = () => { closeRank(); goTitle(); };
+    };
+    $('goSkip').onclick = closeRank;
+    const send = async () => {
+      const name = input.value.trim();
+      if (!name) { msg.textContent = T.errors.bad_name; input.focus(); return; }
+      try { localStorage.setItem('pr_name', name); } catch (e) {}
+      submit.disabled = true; msg.textContent = T.sending;
+      try {
+        const r = await fetch(API + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, score: myScore, lines: myLines, level: myLevel, pieces }) });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) { msg.textContent = T.errors[data.error] || T.errors.default; submit.disabled = false; return; }
+        finish(data.rank);
+      } catch (e) { msg.textContent = T.fail; submit.disabled = false; }
+    };
+    submit.onclick = send;
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } else if (e.key === 'Escape') { closeRank(); } });
+    input.focus();
+  }
+
+  if (API) {   // サーバーが設定されているときだけ RANKING ボタンを出す
+    $('rankBtn').hidden = false;
+    $('rankBtn').addEventListener('click', openRanking);
+    rankEl.addEventListener('click', e => { if (e.target === rankEl) closeRank(); });
   }
 
   reset();

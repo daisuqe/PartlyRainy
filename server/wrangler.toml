@@ -1,0 +1,12 @@
+name = "partly-rainy-scores"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "partly-rainy-scores"
+database_id = "980f037a-470e-4604-bfea-511ffb801974"
+
+[vars]
+# ゲームを公開する URL(例: "https://example.com")。複数ならカンマ区切り。"*" は誰でも許可。
+ALLOWED_ORIGINS = "https://daisuqe.github.io,http://localhost:8765"

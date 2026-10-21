@@ -1,3 +1,6 @@
 # 作業用フォルダは公開しない
 _work/
 *.bak
+# wrangler の作業用ファイル
+server/.wrangler/
+server/node_modules/
