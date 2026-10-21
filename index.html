@@ -47,6 +47,24 @@
   #howtoPanel { background:rgba(10,12,17,.88); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(560px,100%); max-height:100%;
                 overflow:auto; padding:18px 22px; font:14px/1.65 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
                 -webkit-user-select:text; user-select:text; }
+  .navsel { box-shadow:inset 0 0 0 100vmax rgba(70,170,255,.34) !important; filter:saturate(1.8) brightness(1.15); }   /* キーボード/ジョイパッドで選択中の項目: 背景を明るく・鮮やかに・少し水色寄りに */
+  /* ---- ゲームオーバー: 盤面の「GAME OVER」のすぐ下に、名前の入力欄と2つのボタン(背景も縁もなし) ---- */
+  #gobar { position:absolute; z-index:15; width:260px; display:flex; flex-direction:column; gap:8px;
+           font:15px/1.4 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; color:#fff; }
+  #goRow { display:flex; gap:8px; }
+  #goRow button { flex:1 1 0; min-width:0; height:44px; }   /* ボタン2つは同じ大きさ */
+  /* 入力欄とボタンは、右上の MENU ボタンと同じ見た目: 盤面と同じ色の不透明な背景 + 白い2pxの縁 */
+  #gobar input { width:100%; box-sizing:border-box; font:inherit; font-size:20px; padding:9px 12px; color:#fff; background:#000; border:2px solid #fff; border-radius:6px; outline:none;   /* 入力エリアの背景は黒 */
+                 -webkit-user-select:text; user-select:text; touch-action:auto; }
+  #gobar input::placeholder { color:rgba(255,255,255,.4); opacity:1;   /* 案内の文字は薄く */ font-family:'Yodaka',system-ui,sans-serif; font-size:15px; letter-spacing:.06em; text-transform:uppercase; }   /* 「Enter Your Name」 */
+  #gobar button { color:#e9ecf1; background:var(--bb, #0a0c11); border:2px solid #fff; border-radius:6px; padding:0 8px; cursor:pointer; white-space:nowrap;
+                  font-family:'Yodaka',system-ui,sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase; }
+  #gobar button:hover { filter:brightness(1.25); }
+  body:not(.touch) #gobar input, body:not(.touch) #gobar button { border-radius:12px; }   /* MENU ボタン(PC)と同じ角の丸み */
+  #gobar button:disabled { opacity:.5; cursor:default; }
+  #goMsg { color:#ffd479; text-align:center; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  #goMsg:empty { display:none; }
+  body.gobar #pad { display:none !important; }
   /* ---- ランキング / スコア登録 ---- */
   #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
@@ -67,10 +85,17 @@
   #rankPanel .msg { margin:8px 0; color:#ffd479; min-height:1.6em; }
   #rankPanel .rbtns { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
   #rankPanel button { font:inherit; font-size:15px; color:#fff; background:rgba(255,255,255,.1); border:1px solid #6b7894; border-radius:6px; padding:8px 16px; cursor:pointer; }
+  /* ランキング: メッセージと人の名前以外は、英字のヨダカフォント */
+  #rankPanel h2.yk { font-family:'Yodaka',system-ui,sans-serif; font-weight:400; font-size:22px; letter-spacing:.06em; text-transform:uppercase; }
+  #rankPanel td:first-child, #rankPanel td:last-child { font-family:'Yodaka',system-ui,sans-serif; letter-spacing:.04em; }
+  #rankPanel button { font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase; }
+  #howtoPanel button.back, #rankPanel button#rankClose { font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase; }   /* BACK TO TITLE */
   #rankPanel button.main { background:#2f6dff; border-color:#8fb2ff; }
   #rankPanel button:disabled { opacity:.5; cursor:default; }
+  #howtoPanel[data-dev="pc"] [data-dev="touch"], #howtoPanel[data-dev="touch"] [data-dev="pc"] { display:none; }   /* 使っている端末の操作説明だけ出す */
   #howtoPanel [data-lang] { display:none; }
   #howtoPanel:not(.ja) [data-lang=en], #howtoPanel.ja [data-lang=ja] { display:block; }
+  #howtoPanel h2.yk { font-family:'Yodaka',system-ui,sans-serif; font-weight:400; font-size:22px; letter-spacing:.06em; text-transform:uppercase; }   /* HOW TO PLAY */
   #howtoPanel h2 { margin:0 0 8px; font-size:20px; font-weight:600; color:#fff; }
   #howtoPanel h3 { margin:18px 0 6px; font-size:15px; font-weight:600; color:#fff; border-bottom:1px solid #3a4560; padding-bottom:3px; }
   #howtoPanel h4 { margin:10px 0 2px; font-size:14px; font-weight:600; color:#cfe0ff; }
@@ -92,6 +117,8 @@
   #menuPanel h3:first-child { margin-top:0; }
   #menuPanel.ja, #menuPanel.ja button { font-family:system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; }
   #menuPanel.ja { font-size:14px; line-height:1.65; }
+  #menuPanel .seg button[data-music], #menuPanel .seg button[data-sfx], #menuPanel #menuFoot button {
+    font-family:'Yodaka',system-ui,sans-serif; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }   /* ON / OFF / BACK TO TITLE / CLOSE は大文字 */
   .row { display:flex; gap:12px; }
   .row b { flex:0 0 38%; font-weight:400; color:#fff; }
   .note { color:#9aa3b5; margin-top:4px; }
@@ -101,7 +128,6 @@
   .seg button { flex:1; }
   .seg button.on { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
   .desc { margin-top:10px; }
-  #menuFoot button { text-transform:none; }
   #menuFoot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 
   /* 画面ボタン(アイコン): 上段 ◀ ▶ 左回転 右回転 / 下段 ▼ SWAP ≫(ハードドロップ) */
@@ -139,6 +165,11 @@
 <canvas id="bg"></canvas>
 <div id="wrap">
   <canvas id="board" width="300" height="600"></canvas>
+  <div id="gobar" hidden>
+    <input id="nameIn" maxlength="12" autocomplete="off">
+    <div id="goRow"><button class="main" id="goSubmit" type="button"></button><button id="goExit" type="button">Exit</button></div>
+    <div id="goMsg"></div>
+  </div>
   <div id="side">
     <div class="box"><h2>NEXT</h2><canvas id="next" width="190" height="100"></canvas></div>
     <div class="box"><h2>PIECES</h2><div id="pieceBox"><div class="val" id="pieces">0</div></div></div>
@@ -158,9 +189,10 @@
 <div id="howto" hidden>
   <div id="howtoPanel">
     <div data-lang="en">
-    <h2>How to play</h2>
-    <p>Stack the falling pieces and clear lines. Every 10th piece is a double-size piece (it still falls one small cell at a time). The game ends when the stack reaches the top.</p>
+    <h2 class="yk">How to play</h2>
+    <p>Stack the falling pieces and clear lines. Every 20th piece is a double-size piece.</p>
 
+    <div data-dev="pc">
     <h3>Keyboard</h3>
     <table>
       <tr><td>4 / 6</td><td>Move left / right</td></tr>
@@ -169,7 +201,7 @@
       <tr><td>0</td><td>Hard drop</td></tr>
       <tr><td>7, 8, 9</td><td>Swap with Next</td></tr>
       <tr><td>Esc, P</td><td>Pause</td></tr>
-      <tr><td>Enter</td><td>Restart</td></tr>
+      <tr><td>M</td><td>Menu</td></tr>
     </table>
     <p>Arrow keys, Z, X, Space and C also work.</p>
 
@@ -180,10 +212,12 @@
       <tr><td>B, X</td><td>Rotate left</td></tr>
       <tr><td>Up, RT</td><td>Hard drop</td></tr>
       <tr><td>Y, LB, RB</td><td>Swap with Next</td></tr>
-      <tr><td>Start</td><td>Pause / restart</td></tr>
+      <tr><td>Start</td><td>Pause</td></tr>
       <tr><td>Back</td><td>Menu</td></tr>
     </table>
+    </div>
 
+    <div data-dev="touch">
     <h3>Smartphone</h3>
     <p>Choose one of two control modes from the MENU button (the other mode is turned off).</p>
     <h4>Buttons</h4>
@@ -197,23 +231,20 @@
       <tr><td>Flick down</td><td>Hard drop</td></tr>
       <tr><td>Flick up</td><td>Swap with Next</td></tr>
     </table>
+    </div>
 
     <h3>Scoring</h3>
     <ul>
-      <li><b>Clearing lines:</b> 100 × 2<sup>(n−1)</sup> points for n lines cleared at once &mdash; 1 line = 100, 2 = 200, 3 = 400, 4 = 800, and it keeps doubling (double-size pieces can clear more).</li>
-      <li><b>Drop:</b> 1 point for every row you drop with DROP.</li>
-      <li><b>Hard drop:</b> 1 point for every row the piece falls.</li>
-      <li>The level goes up every 10 lines and the pieces fall faster. Speed does not change the points.</li>
+      <li><b>Clearing lines:</b> 100 × 2<sup>(n−1)</sup> points for n lines cleared at once &mdash; 1 line = 100, 2 = 200, 3 = 400, 4 = 800, and it keeps doubling.</li>
+      <li><b>Drop / hard drop:</b> 1 point for every row the piece falls.</li>
     </ul>
-
-    <h3>Weather</h3>
-    <p>The PIECES counter drives the sky: clouds darken as the last digit goes 7, 8, 9, and it rains when the count reaches a multiple of 10.</p>
 
     </div>
     <div data-lang="ja">
-    <h2>遊び方</h2>
-    <p>落ちてくるピースを積んでラインを消します。10個目ごとに倍サイズのピースが落ちてきます(落下は小さいマス1つ分ずつです)。積み上がって一番上に届くとゲームオーバーです。</p>
+    <h2 class="yk">How to play</h2>
+    <p>落ちてくるピースを積んでラインを消します。20個目ごとに倍サイズのピースが落ちてきます。</p>
 
+    <div data-dev="pc">
     <h3>キーボード</h3>
     <table>
       <tr><td>4 / 6</td><td>左右に移動</td></tr>
@@ -222,7 +253,7 @@
       <tr><td>0</td><td>ハードドロップ</td></tr>
       <tr><td>7, 8, 9</td><td>Next と入れ替え</td></tr>
       <tr><td>Esc, P</td><td>一時停止</td></tr>
-      <tr><td>Enter</td><td>リスタート</td></tr>
+      <tr><td>M</td><td>メニュー</td></tr>
     </table>
     <p>矢印キー、Z、X、Space、C でも操作できます。</p>
 
@@ -233,10 +264,12 @@
       <tr><td>B, X</td><td>左回転</td></tr>
       <tr><td>上, RT</td><td>ハードドロップ</td></tr>
       <tr><td>Y, LB, RB</td><td>Next と入れ替え</td></tr>
-      <tr><td>Start</td><td>一時停止 / リスタート</td></tr>
+      <tr><td>Start</td><td>一時停止</td></tr>
       <tr><td>Back</td><td>メニュー</td></tr>
     </table>
+    </div>
 
+    <div data-dev="touch">
     <h3>スマホ</h3>
     <p>MENU ボタンから、操作モードを2つのうち1つ選べます(選ばなかった方の操作は無効になります)。</p>
     <h4>ボタン</h4>
@@ -250,17 +283,14 @@
       <tr><td>下にフリック</td><td>ハードドロップ</td></tr>
       <tr><td>上にフリック</td><td>Next と入れ替え</td></tr>
     </table>
+    </div>
 
     <h3>採点</h3>
     <ul>
-      <li><b>ライン消去:</b> 一度に n ライン消すと 100 × 2<sup>(n−1)</sup> 点です。1ライン=100、2ライン=200、3ライン=400、4ライン=800、以降も倍々になります(倍サイズのピースならさらに多く消せます)。</li>
-      <li><b>ドロップ:</b> DROP で落とした1段につき1点です。</li>
-      <li><b>ハードドロップ:</b> 落下した1段につき1点です。</li>
-      <li>レベルは10ライン消すごとに上がり、落下が速くなります。速さは点数に影響しません。</li>
+      <li><b>ライン消去:</b> 一度に n ライン消すと 100 × 2<sup>(n−1)</sup> 点です。1ライン=100、2ライン=200、3ライン=400、4ライン=800、以降も倍々になります。</li>
+      <li><b>ドロップ / ハードドロップ:</b> 落下した1段につき1点です。</li>
     </ul>
 
-    <h3>天気</h3>
-    <p>PIECES の数字に合わせて空が変わります。1桁目が 7、8、9 と進むにつれて雲が暗くなり、10の倍数になると雨が降ります。</p>
     </div>
     <button class="back" id="howtoBack" type="button">Back</button>
   </div>
@@ -269,7 +299,7 @@
 <div id="menu" hidden>
   <div id="menuPanel">
     <div id="menuBody"></div>
-    <div id="menuFoot"><button id="restartBtn" type="button">RESTART</button><button id="closeBtn" type="button">CLOSE</button></div>
+    <div id="menuFoot"><button id="restartBtn" type="button">Back To Title</button><button id="closeBtn" type="button">CLOSE</button></div>
   </div>
 </div>
 <div id="pad" hidden>
@@ -290,7 +320,8 @@
   const COLS = 10, ROWS = 20, CELL = 30;
   // ランキングサーバー(server/README.md の手順で公開した Worker の URL。末尾に / を付けない)。空なら機能オフ。
   const SCORE_API = 'https://partly-rainy-scores.haradadaisuke.workers.dev';
-  const BIG_EVERY = 10;          // 10個目ごとに倍サイズ
+  const BIG_EVERY = 20;          // 20個目ごとに倍サイズ
+  const RAIN_EVERY = 20;         // 20個目ごとに雨(その手前の3個から雲が増える)
   const board = document.getElementById('board'), ctx = board.getContext('2d');
   const nextCv = document.getElementById('next'), nctx = nextCv.getContext('2d');
 
@@ -363,11 +394,14 @@
   function reset() {
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     bag = []; count = Number(new URLSearchParams(location.search).get('count')) || 0;   // ?count=9 で途中から開始(確認用)
+    hideGoBar();
     score = 0; lines = 0; level = 1; over = false; paused = false; overShown = false;
     cur = newPiece(); place(cur);
     next = newPiece();
     last = performance.now(); dropAt = 0; cloud = rain = 0;
     updateHud();
+    stopGameOver();
+    if (!titleOpen) { stopMusicSources(); bgmStart(); }   // もう一度あそぶ: ゲームオーバーの曲を止め、今の天気の曲を頭から
   }
 
   const interval = () => Math.max(150, 2400 - (level - 1) * 200);
@@ -442,14 +476,15 @@
     document.getElementById('lines').textContent = lines;
     const pn = count - 1, pe = document.getElementById('pieces');
     pe.textContent = pn;
-    const d1 = pn % 10;
+    const d1 = pn % RAIN_EVERY;   // 雨の周期の中での位置(0 = 雨 / 19・18・17 = 雨の1・2・3個前)
     let st = { k: 1, c: '', b: false };
     if (pn > 0) {
       if (d1 === 0) st = { k: 1.3, c: '#ff3b30', b: false };
-      else if (d1 === 9) st = { k: 1.2, c: '#ff9f0a', b: false };
-      else if (d1 === 8) st = { k: 1.1, c: '#fff45e', b: false };
+      else if (d1 === RAIN_EVERY - 1) st = { k: 1.2, c: '#ff9f0a', b: false };
+      else if (d1 === RAIN_EVERY - 2) st = { k: 1.1, c: '#fff45e', b: false };
     }
-    tCloud = pn > 0 && d1 === 0 ? 1 : d1 === 9 ? 1 : d1 === 8 ? .67 : d1 === 7 ? .34 : 0;
+    // 雲は、雨の3個前から増える(曇りの始まりが雨の何個前かは、周期を20にしても変えない)
+    tCloud = pn > 0 && d1 === 0 ? 1 : d1 === RAIN_EVERY - 1 ? 1 : d1 === RAIN_EVERY - 2 ? .67 : d1 === RAIN_EVERY - 3 ? .34 : 0;
     if (pn === 0) tCloud = 0;
     tRain = pn > 0 && d1 === 0 ? 1 : 0;
     pe.style.setProperty('--k', st.k);
@@ -696,10 +731,12 @@
 
     if (over || (paused && !menuOpen)) {
       ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, 0, board.width, board.height);
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-      ctx.font = '32px Yodaka, system-ui'; ctx.fillText(over ? 'GAME OVER' : 'PAUSE', board.width / 2, board.height / 2 - 6);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = over ? '#ff3b30' : '#fff';
+      ctx.font = (over ? '36px' : '32px') + ' Yodaka, system-ui'; ctx.fillText(over ? 'GAME OVER' : 'PAUSE', board.width / 2, board.height / 2 - 6);
+      ctx.fillStyle = '#fff';
       ctx.font = '14px Yodaka, system-ui';
-      ctx.fillText(over ? (touchMode ? 'TAP TO RESTART' : 'PRESS ENTER TO RESTART') : 'ESC / P TO RESUME', board.width / 2, board.height / 2 + 22);
+      if (!over) ctx.fillText('ESC / P TO RESUME', board.width / 2, board.height / 2 + 22);
     }
   }
 
@@ -711,7 +748,7 @@
       if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
     }
     draw(t);
-    if (over && !overShown) { overShown = true; if (API && score > 0 && !titleOpen) setTimeout(openGameOver, 900); }
+    if (over && !overShown) { overShown = true; bgmGameOver(); if (API && score > 0 && !titleOpen) setTimeout(openGameOver, 900); }
     requestAnimationFrame(loop);
   }
 
@@ -723,7 +760,7 @@
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false, rankOpen = false;   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -751,10 +788,11 @@
     const a = document.createElement('audio');
     return (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"')) ? '.ogg' : '.mp3';
   };
-  // 今の天気 → どの曲か(1桁目 7〜9 = 雨雲 / 0 = 雨 / それ以外 = 晴れ)
+  // 今の天気 → どの曲か(雨の3個前〜1個前 = 雨雲 / 雨の周期の最後 = 雨 / それ以外 = 晴れ)
   const bgmWanted = () => tRain > 0 ? 'rain' : tCloud > 0 ? 'cloudy' : 'sunny';
 
   function bgmFallback() {   // <audio> での再生(ループに僅かな継ぎ目が出ることがある)
+    if (!bgm.on || titleOpen || over) return;   // タイトル画面・ゲームオーバー中は鳴らさない
     const src = BGM_FILES[bgm.mode] + bgmExt();
     if (!bgm.el) { bgm.el = new Audio(src); bgm.el.loop = true; bgm.el.volume = .6; }
     else if (!bgm.el.src.endsWith(src)) { const t = bgm.mode === 'rain' ? 0 : bgm.el.currentTime; bgm.el.src = src; bgm.el.currentTime = t; }
@@ -775,7 +813,7 @@
   }
   function bgmPlayTrack(name) {
     const tr = bgm.tracks[name];
-    if (!bgm.on || titleOpen || !tr || !tr.buf || tr.src || !bgm.ctx) return;
+    if (!bgm.on || titleOpen || over || !tr || !tr.buf || tr.src || !bgm.ctx) return;
     if (name === 'rain' && bgm.mode !== 'rain') return;   // 雨の曲は、雨が始まるときに頭から鳴らす
     const now = bgm.ctx.currentTime;
     if (!bgm.t0) bgm.t0 = now;
@@ -789,19 +827,20 @@
     tr.src.start(0, off);
   }
   function bgmStart() {   // ユーザー操作の中で呼ぶ(ブラウザの自動再生制限のため)
-    if (!bgm.on) return;
+    if (!bgm.on || over) return;   // ゲームオーバー中は曲を流さない
     if (!ensureCtx()) bgm.failed = true;
-    if (bgm.failed || !bgm.ctx) { bgmFallback(); return; }
     // 最初(または音楽をオンにした直後)だけ、今の天気の曲に合わせる。
     // 鳴っている最中に書き換えると、天気の変化と曲の切り替えの順番が崩れ、前の曲が鳴り続けてしまう。
-    const playing = Object.values(bgm.tracks).some(t => t.src);
+    const playing = Object.values(bgm.tracks).some(t => t.src) || (bgm.el && !bgm.el.paused);
     if (!playing) bgm.mode = bgmWanted();
+    if (bgm.failed || !bgm.ctx) { bgmFallback(); return; }
     // 今の天気の曲を最優先で読み込み、続けて残りも読み込む
     const order = [bgm.mode, ...Object.keys(BGM_FILES).filter(n => n !== bgm.mode)];
     order.reduce((p, n) => p.then(() => bgmLoadTrack(n)), Promise.resolve());
     for (const n of order) bgmPlayTrack(n);
+    bgmLoadGameOver();   // ゲームオーバーの曲(小さい)も先に読み込んでおく
   }
-  function bgmStop() {
+  function stopMusicSources() {   // 流れている曲(ゲーム中のBGM)だけを止める
     for (const n in bgm.tracks) {
       const tr = bgm.tracks[n];
       if (tr.src) { try { tr.src.stop(); } catch (e) {} tr.src.disconnect(); tr.src = null; }
@@ -809,12 +848,51 @@
     bgm.t0 = 0;
     if (bgm.el) bgm.el.pause();
   }
+  function bgmStop() { stopMusicSources(); stopGameOver(); }   // すべて止める(タイトルへ戻る / 音楽オフ)
+
+  // ---- ゲームオーバーの曲(約10秒。1回だけ流す。タイトルやゲーム中には流さない) ----
+  const GO_FILE = 'audio/bgm_gameover';
+  bgm.go = { buf: null, loading: false, src: null, el: null };
+  async function bgmLoadGameOver() {
+    const g = bgm.go;
+    if (g.buf || g.loading || !bgm.ctx || bgm.failed) return;
+    g.loading = true;
+    try { g.buf = await bgm.ctx.decodeAudioData(await (await fetch(GO_FILE + bgmExt())).arrayBuffer()); } catch (e) {}
+    g.loading = false;
+  }
+  function bgmPlayGameOver() {
+    const g = bgm.go;
+    if (!bgm.on || !over || titleOpen) return;
+    if (bgm.ctx && !bgm.failed) {
+      if (!g.buf) { bgmLoadGameOver().then(bgmPlayGameOver); return; }   // まだ読み込み前なら、読み込めてから鳴らす
+      if (g.src) return;
+      const src = bgm.ctx.createBufferSource(); src.buffer = g.buf;
+      src.connect(bgm.master); src.start(0); g.src = src;
+      src.onended = () => { if (g.src === src) { src.disconnect(); g.src = null; } };
+    } else {
+      if (!g.el) g.el = new Audio(GO_FILE + bgmExt());
+      g.el.currentTime = 0; g.el.play().catch(() => {});
+    }
+  }
+  function stopGameOver() {
+    const g = bgm.go;
+    if (g.src) { try { g.src.stop(); } catch (e) {} g.src.disconnect(); g.src = null; }
+    if (g.el) g.el.pause();
+  }
+  function bgmGameOver() {   // ゲームオーバーになった: ゲーム中の曲を静かに止めて、ゲームオーバーの曲を1回流す
+    if (!bgm.on || titleOpen) return;
+    if (bgm.ctx && !bgm.failed) {
+      for (const n in bgm.tracks) { const tr = bgm.tracks[n]; if (tr.gain) tr.gain.gain.setTargetAtTime(0, bgm.ctx.currentTime, .2); }
+      setTimeout(() => { if (over) stopMusicSources(); }, 1500);
+    } else if (bgm.el) bgm.el.pause();
+    setTimeout(bgmPlayGameOver, 450);
+  }
   function bgmSetOn(on) {
     bgm.on = on; store.set('pr_music', on ? 'on' : 'off');
     if (on) bgmStart(); else bgmStop();
   }
   function bgmTick(t) {   // 天気が変わったら曲をクロスフェード(0.2秒ごとに確認)
-    if (!bgm.on || t - bgm.last < 200) return;
+    if (!bgm.on || titleOpen || t - bgm.last < 200) return;   // タイトル画面では曲を操作しない
     bgm.last = t;
     const want = bgmWanted();
     if (want === bgm.mode) return;
@@ -900,26 +978,26 @@
       btnNote: 'PORTRAIT: BUTTONS AT THE BOTTOM. LANDSCAPE: MOVE / DROP ON THE LEFT, ROTATE / HARD DROP / SWAP ON THE RIGHT.',
       flickRows: [['DRAG LEFT / RIGHT', 'MOVE'], ['TAP LEFT SIDE', 'ROTATE LEFT'], ['TAP RIGHT SIDE', 'ROTATE RIGHT'],
                   ['TAP BOTTOM EDGE', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']],
-      flickNote: 'OPERATE ANYWHERE ON THE SCREEN. THE BOTTOM 20% IS THE DROP AREA. TAP TO RESTART AFTER GAME OVER.',
+      flickNote: 'OPERATE ANYWHERE ON THE SCREEN. THE BOTTOM 20% IS THE DROP AREA.',
       keyRows: [['4 / 6', 'MOVE'], ['1, 5 / 3', 'ROTATE LEFT / RIGHT'], ['2', 'DROP'], ['0', 'HARD DROP'],
-                ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['ENTER', 'RESTART']],
+                ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['M', 'MENU']],
       keyNote: 'ARROWS / Z / X / SPACE / C ALSO WORK.',
       padRows: [['D-PAD / STICK', 'MOVE / DROP'], ['A', 'ROTATE RIGHT'], ['B / X', 'ROTATE LEFT'],
-                ['UP / RT', 'HARD DROP'], ['Y / LB / RB', 'SWAP WITH NEXT'], ['START', 'PAUSE / RESTART'], ['BACK', 'MENU']],
+                ['UP / RT', 'HARD DROP'], ['Y / LB / RB', 'SWAP WITH NEXT'], ['START', 'PAUSE'], ['BACK', 'MENU']],
     },
     ja: {
-      mode: '操作モード', buttons: 'ボタン', flick: 'フリック', keyboard: 'キーボード', gamepad: 'ジョイパッド', music: '音楽', sfx: '効果音', on: 'オン', off: 'オフ',
+      mode: '操作モード', buttons: 'ボタン', flick: 'フリック', keyboard: 'キーボード', gamepad: 'ジョイパッド', music: '音楽', sfx: '効果音', on: 'ON', off: 'OFF',
       btnRows: [['左 / 右の三角', '移動(長押しで連続)'], ['曲がった矢印', '左回転 / 右回転'], ['下向きの三角', 'ドロップ(長押しで連続)'],
                 ['二重のくの字', 'ハードドロップ'], ['左右の矢印', 'Next と入れ替え']],
       btnNote: '縦持ちは画面の下にボタンが並びます。横持ちは、左に移動・ドロップ、右に回転・ハードドロップ・入れ替えが並びます。',
       flickRows: [['左右にドラッグ', '移動'], ['画面の左側をタップ', '左回転'], ['画面の右側をタップ', '右回転'],
                   ['画面の下端をタップ', 'ドロップ'], ['下にフリック', 'ハードドロップ'], ['上にフリック', 'Next と入れ替え']],
-      flickNote: '画面のどこでも操作できます。下の20%がドロップの範囲です。ゲームオーバー後はタップでリスタートします。',
+      flickNote: '画面のどこでも操作できます。下の20%がドロップの範囲です。',
       keyRows: [['4 / 6', '左右に移動'], ['1, 5 / 3', '左回転 / 右回転'], ['2', 'ドロップ'], ['0', 'ハードドロップ'],
-                ['7, 8, 9', 'Next と入れ替え'], ['Esc, P', '一時停止'], ['Enter', 'リスタート']],
+                ['7, 8, 9', 'Next と入れ替え'], ['Esc, P', '一時停止'], ['M', 'メニュー']],
       keyNote: '矢印キー、Z、X、Space、C でも操作できます。',
       padRows: [['十字キー / スティック', '移動 / ドロップ'], ['A', '右回転'], ['B / X', '左回転'],
-                ['上 / RT', 'ハードドロップ'], ['Y / LB / RB', 'Next と入れ替え'], ['Start', '一時停止 / リスタート'], ['Back', 'メニュー']],
+                ['上 / RT', 'ハードドロップ'], ['Y / LB / RB', 'Next と入れ替え'], ['Start', '一時停止'], ['Back', 'メニュー']],
     },
   };
   function renderMenu() {
@@ -945,11 +1023,11 @@
     if (menuOpen || titleOpen) return;
     menuOpen = true; menuWasPaused = paused;
     if (!over) paused = true;
-    renderMenu(); menuEl.hidden = false;
+    renderMenu(); menuEl.hidden = false; navReset();
   }
   function closeMenu() {
     if (!menuOpen) return;
-    menuOpen = false; menuEl.hidden = true;
+    menuOpen = false; menuEl.hidden = true; navApply();
     if (!menuWasPaused && !over) { paused = false; dropAt = performance.now(); }
   }
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
@@ -983,6 +1061,7 @@
     viewScale = Math.min(1.1, availW / w, availH / h);   // 画面に余裕があれば全体を1.1倍で表示
     wrapEl.style.top = Math.max(topR, topR + (availH - h * viewScale) / 2) + 'px';
     wrapEl.style.transform = `translateX(-50%) scale(${viewScale})`;
+    placeGoBar();
     fitBg();
   }
   function applyMode() {
@@ -1017,20 +1096,85 @@
   if ($('titleImg').complete) fitTitle();
   function startGame() {
     if (!titleOpen) return;
-    titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn');
+    titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn'); navApply();
     reset(); layout(); ensureCtx(); bgmStart();
   }
   function goTitle() {   // タイトル画面へ戻る(曲は止める。START で最初から)
     titleOpen = true; howtoOpen = false; howtoEl.hidden = true;
-    titleEl.hidden = false; document.body.classList.add('titleOn');
+    titleEl.hidden = false; document.body.classList.add('titleOn'); navReset();
+    hideGoBar();
     cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
   }
-  function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; }
-  function closeHowto() { howtoOpen = false; howtoEl.hidden = true; }
+  function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; navReset(); }
+  function closeHowto() { howtoOpen = false; howtoEl.hidden = true; navApply(); }
+
+  // ---- メニュー類をキーボード / ジョイパッドで操作(上下左右で選び、Enter / A で決定、Esc / B で戻る) ----
+  const nav = { r: 0, c: 0, active: false };   // active: キーボード/ジョイパッドで操作中(このときだけ選択を明るく表示)
+  function navRows() {   // いま操作できる項目を、行ごとに並べて返す(いちばん手前の画面だけ)
+    if (rankOpen) { const b = [...rankPanel.querySelectorAll('button')]; return b.length ? [b] : []; }
+    if (howtoOpen) return [[$('howtoBack')]];
+    if (menuOpen) {
+      const rows = [...menuBody.querySelectorAll('.seg')].map(seg => [...seg.querySelectorAll('button')]).filter(r => r.length);
+      rows.push([$('restartBtn'), $('closeBtn')]);
+      return rows;
+    }
+    if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), [$('howtoBtn')]];
+    return [];
+  }
+  function navApply() {   // 選択中の項目に枠を付ける
+    document.querySelectorAll('.navsel').forEach(e => e.classList.remove('navsel'));
+    const rows = navRows();
+    if (!rows.length || !nav.active) return;
+    nav.r = Math.min(nav.r, rows.length - 1);
+    nav.c = Math.min(nav.c, rows[nav.r].length - 1);
+    const b = rows[nav.r][nav.c];
+    b.classList.add('navsel');
+    if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest' });
+  }
+  function navReset() { nav.r = nav.c = 0; navApply(); }
+  function navMove(dc, dr) {
+    const rows = navRows();
+    if (!rows.length) return;
+    if (!nav.active) { nav.active = true; navApply(); return; }   // 最初の1回は、今の選択を見せるだけ(動かさない)
+    if (dr) {
+      if (rows.length === 1) nav.c = (nav.c + dr + rows[0].length) % rows[0].length;   // 1行だけ(ボタンが横に並ぶ画面)なら、上下でも順に選ぶ
+      else { nav.r = (nav.r + dr + rows.length) % rows.length; nav.c = Math.min(nav.c, rows[nav.r].length - 1); }
+    }
+    if (dc && rows[nav.r].length > 1) nav.c = (nav.c + dc + rows[nav.r].length) % rows[nav.r].length;
+    navApply();
+  }
+  function navActivate() {
+    const rows = navRows(), b = rows[nav.r] && rows[nav.r][nav.c];
+    if (b && !b.disabled) b.click();
+    setTimeout(navApply, 30);   // 押した結果で表示が作り直されても、選択の枠を付け直す
+  }
+  function overlayBack() { if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); }
+  const NAV_KEYS = {
+    ArrowUp: [0, -1], Numpad8: [0, -1], ArrowDown: [0, 1], Numpad2: [0, 1],
+    ArrowLeft: [-1, 0], Numpad4: [-1, 0], ArrowRight: [1, 0], Numpad6: [1, 0],
+  };
+  function navKey(k) {   // キーボード: 動かしたら true
+    if (NAV_KEYS[k]) { navMove(...NAV_KEYS[k]); return true; }
+    if (k === 'Enter' || k === 'NumpadEnter' || k === 'Space') { nav.active = true; navActivate(); return true; }
+    return false;
+  }
+  function overlayPad(k) {   // ジョイパッド: メニュー類が開いていれば処理して true
+    if (!(rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
+    if (k === 'rotR') nav.active = true;   // A で決定するときも、操作中として扱う
+    if (k === 'hard' || k === 'up') navMove(0, -1);   // 十字キー上 / スティック上
+    else if (k === 'soft') navMove(0, 1);
+    else if (k === 'left') navMove(-1, 0);
+    else if (k === 'right') navMove(1, 0);
+    else if (k === 'rotR') navActivate();                       // A = 決定
+    else if (k === 'rotL' || k === 'menu') overlayBack();       // B / Back = 戻る
+    else if (k === 'pause') { if (titleOpen && !rankOpen && !howtoOpen) startGame(); else overlayBack(); }   // Start
+    return true;
+  }
   // 日本語環境ならヘルプも日本語で表示
   $('howtoPanel').classList.toggle('ja', isJa);
-  $('howtoBack').textContent = isJa ? '戻る' : 'Back';
+  $('howtoPanel').dataset.dev = touchMode ? 'touch' : 'pc';
+  $('howtoBack').textContent = 'Back To Title';
   $('menuPanel').classList.toggle('ja', isJa);
   $('restartBtn').textContent = 'Back To Title';
   $('closeBtn').textContent = 'Close';
@@ -1042,11 +1186,13 @@
   // ---- キーボード ----
   addEventListener('keydown', e => {
     const k = e.code;
-    if (rankOpen) { if (k === 'Escape') { closeRank(); e.preventDefault(); } return; }
-    if (howtoOpen) { if (k === 'Escape' || k === 'Enter') { closeHowto(); e.preventDefault(); } return; }
-    if (titleOpen) { if (k === 'Enter' || k === 'NumpadEnter' || k === 'Space') { startGame(); e.preventDefault(); } return; }
-    if (menuOpen) { if (k === 'Escape') { closeMenu(); e.preventDefault(); } return; }
-    if (k === 'Enter' || k === 'NumpadEnter') { reset(); e.preventDefault(); return; }
+    if (goBarOpen && e.target && e.target.id === 'nameIn') return;   // 名前の入力中はゲームのキーを無効に
+    if (rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
+      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || rankOpen || howtoOpen || menuOpen) { overlayBack(); e.preventDefault(); } return; }
+      if (navKey(k)) e.preventDefault();
+      return;
+    }
+    if (k === 'KeyM') { nav.active = true; openMenu(); e.preventDefault(); return; }   // ゲーム中: M でメニュー
     if (k === 'KeyP' || k === 'Escape') { togglePause(); e.preventDefault(); return; }
     const map = {
       Numpad4: 'left', ArrowLeft: 'left', Numpad6: 'right', ArrowRight: 'right',
@@ -1074,7 +1220,7 @@
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank');
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
@@ -1105,7 +1251,7 @@
     if (e.touches.length) return;
     const t = e.changedTouches[0], dt = performance.now() - g.t0;
     const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
-    if (over) { if (!g.moved && dt < 400) reset(); }
+    if (over) { /* ゲームオーバー後は何もしない(リスタートはなし) */ }
     else if (g.axis === 'v') {   // 縦: 速くはじいたときだけ(下=ハードドロップ / 上=入れ替え)。ゆっくりのドラッグは何もしない
       if (dy > 0 && dt < 350 && dy > 60) act('hard');
       else if (dy < 0 && dt < 350 && -dy > 60) act('swap');
@@ -1120,6 +1266,7 @@
 
   // ---- ジョイパッド ----
   const padPrev = {}, padNext = {};
+  const NAV_REPEAT = new Set(['left', 'right', 'soft', 'up', 'hard']);
   function pollPad(t) {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     let p = null;
@@ -1128,22 +1275,21 @@
     const B = i => !!(p.buttons[i] && p.buttons[i].pressed);
     const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
     const st = {
-      left: B(14) || ax < -.5, right: B(15) || ax > .5, soft: B(13) || ay > .6,
+      left: B(14) || ax < -.5, right: B(15) || ax > .5, soft: B(13) || ay > .6, up: ay < -.6,   // up(スティック上)はメニュー専用
       rotR: B(0), rotL: B(1) || B(2), hard: B(12) || B(7), swap: B(3) || B(4) || B(5), pause: B(9), menu: B(8),
     };
+    const inOverlay = rankOpen || howtoOpen || menuOpen || titleOpen;   // メニュー類の操作中は、押しっぱなしの移動をゆっくりにする
     for (const k in st) {
       const was = padPrev[k]; padPrev[k] = st[k];
       if (!st[k]) continue;
       let fire = false;
       if (!was) { fire = true; padNext[k] = t + 170; }
-      else if (REPEAT[k] && t >= padNext[k]) { fire = true; padNext[k] = t + REPEAT[k]; }
+      else if (t >= padNext[k] && (inOverlay ? NAV_REPEAT.has(k) : REPEAT[k])) { fire = true; padNext[k] = t + (inOverlay ? 150 : REPEAT[k]); }
       if (!fire) continue;
-      if (rankOpen) { if (k === 'rotL') closeRank(); continue; }
-      if (howtoOpen) { if (k === 'rotL' || k === 'pause') closeHowto(); continue; }
-      if (titleOpen) { if (k === 'pause' || k === 'rotR') startGame(); continue; }
-      if (menuOpen) { if (k === 'rotL' || k === 'pause' || k === 'menu') closeMenu(); continue; }
-      if (k === 'menu') openMenu();
-      else if (k === 'pause') { if (over) reset(); else togglePause(); }
+      if (overlayPad(k)) continue;   // メニュー類が開いている間は、そちらを操作
+      if (k === 'up') continue;       // スティック上は、ゲーム中は何もしない(ハードドロップはしない)
+      if (k === 'menu') { nav.active = true; openMenu(); }
+      else if (k === 'pause') togglePause();
       else act(k);
     }
   }
@@ -1152,13 +1298,13 @@
   const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
   const rankEl = $('rank'), rankPanel = $('rankPanel');
   const RT = {
-    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back', gameover: 'GAME OVER',
-          score: 'Score', lines: 'Lines', level: 'Level', name: 'Name', submit: 'Submit', skip: 'Exit', sending: 'Sending...',
+    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: 'Sending...',
           rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet.',
           errors: { too_fast: 'Please wait a moment and try again.', bad_name: 'Please enter a name.', default: 'Could not submit the score.' } },
-    ja: { ranking: 'ランキング', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'もう一度', back: '戻る', gameover: 'GAME OVER',
-          score: 'Score', lines: 'Lines', level: 'Level', name: 'Name', submit: '登録する', skip: '終了', sending: '送信中...',
-          rank: n => `${n}位になりました!`, again: 'もう一度あそぶ', title: 'Back To Title', empty: 'まだスコアがありません。',
+    ja: { ranking: 'Ranking', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: '送信中...',
+          rank: n => `${n}位になりました!`, again: 'Play again', title: 'Back To Title', empty: 'まだスコアがありません。',
           errors: { too_fast: '少し待ってから、もう一度送ってください。', bad_name: 'なまえを入れてください。', default: 'スコアを登録できませんでした。' } },
   };
   const rt = () => RT[isJa ? 'ja' : 'en'];
@@ -1172,59 +1318,76 @@
     if (!scores.length) return `<p>${rt().empty}</p>`;
     return '<table>' + scores.map((r, i) => `<tr${myRank === i + 1 ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.score}</td></tr>`).join('') + '</table>';
   }
-  function showRank() { rankOpen = true; rankEl.hidden = false; }
-  function closeRank() { rankOpen = false; rankEl.hidden = true; }
+  function showRank() { rankOpen = true; rankEl.hidden = false; navReset(); }
+  function closeRank() { rankOpen = false; rankEl.hidden = true; navApply(); }
 
   async function openRanking() {   // タイトル画面の RANKING ボタン
     showRank();
-    rankPanel.innerHTML = `<h2>${rt().ranking}</h2><p>${rt().loading}</p>`;
+    rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2><p>${rt().loading}</p>`;
     try {
       const scores = await fetchTop();
-      rankPanel.innerHTML = `<h2>${rt().ranking}</h2>${listHtml(scores)}<div class="rbtns"><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
+      rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2>${listHtml(scores)}<div class="rbtns"><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
     } catch (e) {
-      rankPanel.innerHTML = `<h2>${rt().ranking}</h2><p class="msg">${rt().fail}</p><div class="rbtns"><button id="rankRetry" type="button">${rt().retry}</button><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
+      rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2><p class="msg">${rt().fail}</p><div class="rbtns"><button id="rankRetry" type="button">${rt().retry}</button><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
       $('rankRetry').onclick = openRanking;
     }
     $('rankClose').onclick = closeRank;
   }
 
-  function openGameOver() {   // ゲームオーバー後: 名前を入れて登録
-    if (!over || !API || titleOpen || rankOpen || menuOpen) return;
-    const T = rt(), pieces = count - 1, myScore = score, myLines = lines, myLevel = level;
-    let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
-    showRank();
-    rankPanel.innerHTML = `<h2 class="go">${T.gameover}</h2>
-      <div class="stats"><span>${T.score}</span><b>${myScore}</b><span>${T.lines}</span><b>${myLines}</b><span>${T.level}</span><b>${myLevel}</b></div>
-      <input id="nameIn" maxlength="12" autocomplete="off" placeholder="${T.name}" value="${esc(lastName)}">
-      <div class="msg" id="rankMsg"></div>
-      <div class="rbtns"><button class="main" id="goSubmit" type="button">${T.submit}</button><button id="goSkip" type="button">${T.skip}</button></div>`;
-    const input = $('nameIn'), msg = $('rankMsg'), submit = $('goSubmit');
-    const finish = async rank => {   // 登録のあと(または登録しないとき)の画面
-      let scores = [];
-      try { scores = await fetchTop(); } catch (e) {}
-      rankPanel.innerHTML = `<h2>${rank ? T.rank(rank) : T.ranking}</h2>${listHtml(scores, rank)}
-        <div class="rbtns"><button id="goTitle" type="button">${T.title}</button><button class="main" id="goAgain" type="button">${T.again}</button></div>`;
-      $('goAgain').onclick = () => { closeRank(); reset(); };
-      $('goTitle').onclick = () => { closeRank(); goTitle(); };
-    };
-    $('goSkip').onclick = () => { closeRank(); goTitle(); };   // 「終了」= タイトル画面へ
-    const send = async () => {
-      const name = input.value.trim();
-      if (!name) { msg.textContent = T.errors.bad_name; input.focus(); return; }
-      try { localStorage.setItem('pr_name', name); } catch (e) {}
-      submit.disabled = true; msg.textContent = T.sending;
-      try {
-        const r = await fetch(API + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, score: myScore, lines: myLines, level: myLevel, pieces }) });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) { msg.textContent = T.errors[data.error] || T.errors.default; submit.disabled = false; return; }
-        finish(data.rank);
-      } catch (e) { msg.textContent = T.fail; submit.disabled = false; }
-    };
-    submit.onclick = send;
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } else if (e.key === 'Escape') { closeRank(); } });
-    input.focus();
+  // ---- ゲームオーバー: メイン画面の下に「名前の入力欄 / 登録 / Exit」だけを出す ----
+  const goBar = $('gobar'), goInput = $('nameIn'), goMsg = $('goMsg'), goSubmit = $('goSubmit'), goExit = $('goExit');
+  let goData = null, memName = '';   // memName: localStorage が使えない環境でも、このページを開いている間は名前を覚えておく
+  function placeGoBar() {   // 盤面の「GAME OVER」の文字(盤面の縦中央)のすぐ下に置く
+    const b = board, x = b.offsetLeft + b.clientLeft + (b.width - 260) / 2, y = b.offsetTop + b.clientTop + b.height / 2 + 14;
+    goBar.style.left = x + 'px'; goBar.style.top = y + 'px';
   }
+  function hideGoBar() {
+    if (!goBarOpen) return;
+    goBarOpen = false; goBar.hidden = true; document.body.classList.remove('gobar'); layout();
+  }
+  function openGameOver() {
+    if (!over || !API || titleOpen || rankOpen || menuOpen || goBarOpen) return;
+    const T = rt();
+    goData = { score, lines, level, pieces: count - 1 };
+    let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
+    goInput.value = lastName || memName;   // 前回の名前を、最初から入れておく goInput.placeholder = T.name;
+    goSubmit.textContent = T.submit; goSubmit.disabled = false; goExit.textContent = 'Exit'; goMsg.textContent = '';
+    goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout();
+    if (!touchMode) goInput.focus();   // スマホでは、勝手にキーボードを出さない
+  }
+  async function showResult(rank) {   // 登録のあと: 順位と上位の一覧
+    const T = rt();
+    showRank();
+    rankPanel.innerHTML = `<h2>${T.loading}</h2>`;
+    let scores = [];
+    try { scores = await fetchTop(); } catch (e) {}
+    rankPanel.innerHTML = `<h2${rank ? '' : ' class="yk"'}>${rank ? T.rank(rank) : T.ranking}</h2>${listHtml(scores, rank)}
+      <div class="rbtns"><button class="main" id="goTitle" type="button">${T.title}</button></div>`;
+    $('goTitle').onclick = () => { closeRank(); goTitle(); };
+  }
+  async function sendScore() {
+    const T = rt();
+    if (!goData) return;
+    const name = goInput.value.trim();
+    if (!name) { goMsg.textContent = T.errors.bad_name; goInput.focus(); return; }
+    try { localStorage.setItem('pr_name', name); } catch (e) {}
+    goSubmit.disabled = true; goMsg.textContent = T.sending;
+    try {
+      const r = await fetch(API + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, ...goData }) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { goMsg.textContent = T.errors[data.error] || T.errors.default; goSubmit.disabled = false; return; }
+      hideGoBar(); showResult(data.rank);
+    } catch (e) { goMsg.textContent = T.fail; goSubmit.disabled = false; }
+  }
+  goSubmit.addEventListener('click', sendScore);
+  goExit.addEventListener('click', () => { hideGoBar(); goTitle(); });   // Exit = タイトル画面へ
+  goInput.addEventListener('input', () => {   // 登録しなくても(EXITしても)、打った名前は覚えておく
+    const v = goInput.value.trim();
+    if (!v) return;
+    memName = v;
+    try { localStorage.setItem('pr_name', v); } catch (e) {}
+  });
+  goInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendScore(); } });
 
   if (API) {   // サーバーが設定されているときだけ RANKING ボタンを出す
     $('rankBtn').hidden = false;
@@ -1232,8 +1395,14 @@
     rankEl.addEventListener('click', e => { if (e.target === rankEl) closeRank(); });
   }
 
+  // メニューやランキングの中身が作り直されたとき、選択の枠を付け直す
+  addEventListener('pointerdown', () => { if (nav.active) { nav.active = false; navApply(); } }, true);   // マウス・タッチ操作に切り替えたら、選択表示を消す
+  new MutationObserver(() => navApply()).observe(rankPanel, { childList: true });
+  new MutationObserver(() => navApply()).observe(menuBody, { childList: true });
+
   reset();
   applyMode();
+  navReset();   // 起動直後のタイトル画面: START を選択
   requestAnimationFrame(loop);
 })();
 </script>
