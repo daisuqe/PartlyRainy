@@ -53,6 +53,8 @@
                overflow:auto; padding:18px 22px; font:15px/1.6 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
                -webkit-user-select:text; user-select:text; }
   #rankPanel h2 { margin:0 0 8px; font-size:22px; font-weight:600; color:#fff; }
+  #rankPanel h2.go { font-family:'Yodaka',system-ui,sans-serif; font-weight:400; font-size:min(46px, calc((100vw - 76px) / 8.8)); line-height:1.1; letter-spacing:.04em; white-space:nowrap;
+                     color:#ff3b30; text-align:center; text-shadow:0 3px 0 rgba(0,0,0,.45); margin:0 0 8px; }
   #rankPanel .stats { display:grid; grid-template-columns:auto 1fr; gap:2px 14px; margin:6px 0 12px; }
   #rankPanel .stats b { color:#fff; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
   #rankPanel input { width:100%; font:inherit; font-size:18px; padding:9px 12px; color:#fff; background:rgba(255,255,255,.08); border:1px solid #6b7894; border-radius:6px;
@@ -1021,6 +1023,7 @@
   function goTitle() {   // タイトル画面へ戻る(曲は止める。START で最初から)
     titleOpen = true; howtoOpen = false; howtoEl.hidden = true;
     titleEl.hidden = false; document.body.classList.add('titleOn');
+    cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
   }
   function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; }
@@ -1149,12 +1152,12 @@
   const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
   const rankEl = $('rank'), rankPanel = $('rankPanel');
   const RT = {
-    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back', gameover: 'Game over',
-          score: 'Score', lines: 'Lines', level: 'Level', name: 'Your name', submit: 'Submit', skip: 'Skip', sending: 'Sending...',
+    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Name', submit: 'Submit', skip: 'Exit', sending: 'Sending...',
           rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet.',
           errors: { too_fast: 'Please wait a moment and try again.', bad_name: 'Please enter a name.', default: 'Could not submit the score.' } },
-    ja: { ranking: 'ランキング', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'もう一度', back: '戻る', gameover: 'ゲームオーバー',
-          score: 'スコア', lines: 'ライン', level: 'レベル', name: 'なまえ', submit: '登録する', skip: 'しない', sending: '送信中...',
+    ja: { ranking: 'ランキング', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'もう一度', back: '戻る', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Name', submit: '登録する', skip: '終了', sending: '送信中...',
           rank: n => `${n}位になりました!`, again: 'もう一度あそぶ', title: 'Back To Title', empty: 'まだスコアがありません。',
           errors: { too_fast: '少し待ってから、もう一度送ってください。', bad_name: 'なまえを入れてください。', default: 'スコアを登録できませんでした。' } },
   };
@@ -1190,11 +1193,11 @@
     const T = rt(), pieces = count - 1, myScore = score, myLines = lines, myLevel = level;
     let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
     showRank();
-    rankPanel.innerHTML = `<h2>${T.gameover}</h2>
+    rankPanel.innerHTML = `<h2 class="go">${T.gameover}</h2>
       <div class="stats"><span>${T.score}</span><b>${myScore}</b><span>${T.lines}</span><b>${myLines}</b><span>${T.level}</span><b>${myLevel}</b></div>
       <input id="nameIn" maxlength="12" autocomplete="off" placeholder="${T.name}" value="${esc(lastName)}">
       <div class="msg" id="rankMsg"></div>
-      <div class="rbtns"><button id="goSkip" type="button">${T.skip}</button><button class="main" id="goSubmit" type="button">${T.submit}</button></div>`;
+      <div class="rbtns"><button class="main" id="goSubmit" type="button">${T.submit}</button><button id="goSkip" type="button">${T.skip}</button></div>`;
     const input = $('nameIn'), msg = $('rankMsg'), submit = $('goSubmit');
     const finish = async rank => {   // 登録のあと(または登録しないとき)の画面
       let scores = [];
@@ -1204,7 +1207,7 @@
       $('goAgain').onclick = () => { closeRank(); reset(); };
       $('goTitle').onclick = () => { closeRank(); goTitle(); };
     };
-    $('goSkip').onclick = closeRank;
+    $('goSkip').onclick = () => { closeRank(); goTitle(); };   // 「終了」= タイトル画面へ
     const send = async () => {
       const name = input.value.trim();
       if (!name) { msg.textContent = T.errors.bad_name; input.focus(); return; }
