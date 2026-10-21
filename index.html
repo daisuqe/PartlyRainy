@@ -67,6 +67,8 @@
                width:min(440px,100%); max-height:100%; overflow:auto; padding:16px 18px; font-size:12px; line-height:1.7; }
   #menuPanel h3 { margin:14px 0 6px; font-size:14px; font-weight:400; color:#fff; letter-spacing:.08em; }
   #menuPanel h3:first-child { margin-top:0; }
+  #menuPanel.ja, #menuPanel.ja button { font-family:system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; }
+  #menuPanel.ja { font-size:14px; line-height:1.65; }
   .row { display:flex; gap:12px; }
   .row b { flex:0 0 38%; font-weight:400; color:#fff; }
   .note { color:#9aa3b5; margin-top:4px; }
@@ -76,6 +78,7 @@
   .seg button { flex:1; }
   .seg button.on { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
   .desc { margin-top:10px; }
+  #menuFoot button { text-transform:none; }
   #menuFoot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 
   /* 画面ボタン(アイコン): 上段 ◀ ▶ 左回転 右回転 / 下段 ▼ SWAP ≫(ハードドロップ) */
@@ -163,9 +166,9 @@
     <h4>Flick</h4>
     <table>
       <tr><td>Drag left / right</td><td>Move</td></tr>
-      <tr><td>Tap</td><td>Rotate right</td></tr>
-      <tr><td>Two-finger tap</td><td>Rotate left</td></tr>
-      <tr><td>Drag down</td><td>Drop</td></tr>
+      <tr><td>Tap the left side</td><td>Rotate left</td></tr>
+      <tr><td>Tap the right side</td><td>Rotate right</td></tr>
+      <tr><td>Tap the bottom edge</td><td>Drop</td></tr>
       <tr><td>Flick down</td><td>Hard drop</td></tr>
       <tr><td>Flick up</td><td>Swap with Next</td></tr>
     </table>
@@ -216,9 +219,9 @@
     <h4>フリック</h4>
     <table>
       <tr><td>左右にドラッグ</td><td>移動</td></tr>
-      <tr><td>タップ</td><td>右回転</td></tr>
-      <tr><td>2本指でタップ</td><td>左回転</td></tr>
-      <tr><td>下にドラッグ</td><td>ドロップ</td></tr>
+      <tr><td>画面の左側をタップ</td><td>左回転</td></tr>
+      <tr><td>画面の右側をタップ</td><td>右回転</td></tr>
+      <tr><td>画面の下端をタップ</td><td>ドロップ</td></tr>
       <tr><td>下にフリック</td><td>ハードドロップ</td></tr>
       <tr><td>上にフリック</td><td>Next と入れ替え</td></tr>
     </table>
@@ -251,8 +254,8 @@
     <button type="button" data-act="soft" aria-label="Drop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7 L12 19 L20 7 Z" fill="currentColor"/></svg></button>
   </div>
   <div class="grp r">
-    <button type="button" data-act="rotL" aria-label="Rotate left"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(-1 -0.5)"><path d="M11 4.5 A8 8 0 1 0 19 12.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 16.5 L19 12.5 L23 16.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></button>
-    <button type="button" data-act="rotR" aria-label="Rotate right"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(1 -0.5)"><path d="M13 4.5 A8 8 0 1 1 5 12.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 16.5 L5 12.5 L1 16.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></button>
+    <button type="button" data-act="rotL" aria-label="Rotate left"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(12 12) translate(-6.92 -8.65)"><path d="M15 1.5 A11.5 11.5 0 0 0 3.54 14 L3.64 15.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M-1.16 11.8 L3.64 15.8 L8.44 11.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></button>
+    <button type="button" data-act="rotR" aria-label="Rotate right"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(12 12) scale(-1 1) translate(-6.92 -8.65)"><path d="M15 1.5 A11.5 11.5 0 0 0 3.54 14 L3.64 15.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M-1.16 11.8 L3.64 15.8 L8.44 11.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></button>
     <button type="button" data-act="swap" aria-label="Swap with Next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8 H19 M15 4 L19.5 8 L15 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.5 16 H5 M9 12 L4.5 16 L9 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button type="button" data-act="hard" aria-label="Hard drop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5 L12 11 L19 4.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12 L12 18.5 L19 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
@@ -349,30 +352,38 @@
     // 位置(箱の原点)は動かさず、回転後の配置に切り替えるだけ。ぶつかるなら回転しない
     const rot = (cur.rot + (cw ? 1 : 3)) % 4;
     const m = scale(ROT[cur.name][rot], cur.s);
-    if (!hit(m, cur.x, cur.y)) { cur.rot = rot; cur.m = m; }
+    if (!hit(m, cur.x, cur.y)) { cur.rot = rot; cur.m = m; sfx('rotate'); }
   }
   function softDrop() {
-    if (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; score += 1; dropAt = performance.now(); }
+    if (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; score += 1; dropAt = performance.now(); sfx('soft'); }
     else lock();
   }
   function hardDrop() {
     let n = 0;
     while (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; n++; }
     score += n;
-    lock();
+    if (n > 0) sfx('hard');
+    lock('land');
   }
   function swapNext() {
-    // 駒の形と色だけを入れ替える。大きさ(倍サイズ)は落下中/Nextそれぞれの枠のまま
+    // 今の駒と同じ高さ(駒の一番上の位置)・同じ横位置(中心)から Next の駒を出す。
+    // 形と色だけを入れ替え、大きさ(倍サイズ)は落下中/Nextそれぞれの枠のまま。
+    // 壁や積んだブロックにめり込むなら入れ替えない。成功したら true。
     const sz = cur.s, nz = next.s;
-    const t = cur; cur = next; next = t;
-    cur.s = sz; next.s = nz;
-    next.m = scale(ROT[next.name][0], next.s);
-    place(cur);
-    if (hit(cur.m, cur.x, cur.y)) { over = true; }
+    const top = m => m.findIndex(row => row.some(Boolean));
+    const m = scale(ROT[next.name][0], sz);
+    const x = cur.x + Math.floor((cur.m[0].length - m[0].length) / 2);
+    const y = cur.y + top(cur.m) - top(m);
+    if (hit(m, x, y)) return false;
+    const a = cur, b = next;
+    cur = { name: b.name, color: b.color, s: sz, rot: 0, m, x, y };
+    next = { name: a.name, color: a.color, s: nz, rot: 0, m: scale(ROT[a.name][0], nz), x: 0, y: 0 };
     dropAt = performance.now();
+    return true;
   }
 
-  function lock() {
+  function lock(kind) {   // kind: 'land' = ハードドロップの着地 / それ以外 = 落下中の接地
+    sfx(kind === 'land' ? 'land' : 'touch');
     cur.m.forEach((row, r) => row.forEach((v, c) => {
       const gy = cur.y + r, gx = cur.x + c;
       if (v && gy >= 0) grid[gy][gx] = cur.color;
@@ -666,6 +677,7 @@
 
   function loop(t) {
     pollPad(t);
+    bgmTick(t);
     if (!titleOpen && !over && !paused && t - dropAt >= interval()) {
       dropAt = t;
       if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
@@ -680,13 +692,13 @@
     get(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   };
-  let gMode = store.get('pr_mode', 'buttons') === 'flick' ? 'flick' : 'buttons';
+  let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
   let titleOpen = true, howtoOpen = false;   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
-    left: () => move(-1), right: () => move(1), rotL: () => rotate(false), rotR: () => rotate(true),
-    soft: softDrop, hard: hardDrop, swap: swapNext,
+    left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
+    soft: softDrop, hard: hardDrop, swap: () => { if (swapNext()) sfx('swap'); },
   };
   function act(name) {
     if (titleOpen || menuOpen || over || paused) return;
@@ -699,31 +711,202 @@
 
   // ---- メニュー ----
   const $ = id => document.getElementById(id);
+
+  // ================= BGM(天気で曲が変わる: 晴れ / 雨雲 / 雨) =================
+  // 3曲は小節位置とループ長(80秒)が同じなので、同じ再生位置のまま音量だけをクロスフェードして切り替える。
+  // WebAudio でつなぎ目なしにループ。Ogg に非対応の端末だけ mp3、file:// などで読み込めない環境は <audio> に切り替える。
+  const BGM_TRIM = { sunny: 1, cloudy: 1, rain: 1.5 };   // 曲ごとの音量(1 = そのまま)。雨は大きめ
+  const BGM_FILES = { sunny: 'audio/bgm_sunny', cloudy: 'audio/bgm_cloudy', rain: 'audio/bgm_rain' };
+  const bgm = { on: store.get('pr_music', 'on') !== 'off', ctx: null, master: null, tracks: {}, t0: 0, mode: 'sunny', last: 0, failed: false, el: null };
+  const bgmExt = () => {
+    const a = document.createElement('audio');
+    return (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"')) ? '.ogg' : '.mp3';
+  };
+  // 今の天気 → どの曲か(1桁目 7〜9 = 雨雲 / 0 = 雨 / それ以外 = 晴れ)
+  const bgmWanted = () => tRain > 0 ? 'rain' : tCloud > 0 ? 'cloudy' : 'sunny';
+
+  function bgmFallback() {   // <audio> での再生(ループに僅かな継ぎ目が出ることがある)
+    const src = BGM_FILES[bgm.mode] + bgmExt();
+    if (!bgm.el) { bgm.el = new Audio(src); bgm.el.loop = true; bgm.el.volume = .6; }
+    else if (!bgm.el.src.endsWith(src)) { const t = bgm.mode === 'rain' ? 0 : bgm.el.currentTime; bgm.el.src = src; bgm.el.currentTime = t; }
+    bgm.el.volume = bgm.mode === 'rain' ? .9 : .6;
+    bgm.el.play().catch(() => {});
+  }
+  async function bgmLoadTrack(name) {
+    const tr = bgm.tracks[name] || (bgm.tracks[name] = { buf: null, loading: false, src: null, gain: null });
+    if (tr.buf || tr.loading || !bgm.ctx) return;
+    tr.loading = true;
+    try {
+      const res = await fetch(BGM_FILES[name] + bgmExt());
+      tr.buf = await bgm.ctx.decodeAudioData(await res.arrayBuffer());
+    } catch (e) { if (name === 'sunny') bgm.failed = true; }
+    tr.loading = false;
+    if (bgm.failed) { bgmFallback(); return; }
+    bgmPlayTrack(name);
+  }
+  function bgmPlayTrack(name) {
+    const tr = bgm.tracks[name];
+    if (!bgm.on || titleOpen || !tr || !tr.buf || tr.src || !bgm.ctx) return;
+    if (name === 'rain' && bgm.mode !== 'rain') return;   // 雨の曲は、雨が始まるときに頭から鳴らす
+    const now = bgm.ctx.currentTime;
+    if (!bgm.t0) bgm.t0 = now;
+    // 晴れ・雨雲は小節位置とループ長(80秒)が共通なので、同じ再生位置から入る。雨(100BPM/76.8秒)は頭から。
+    const off = name === 'rain' ? 0 : (now - bgm.t0) % tr.buf.duration;
+    tr.gain = bgm.ctx.createGain();
+    if (name === 'rain') { tr.gain.gain.value = 0; tr.gain.gain.setTargetAtTime(BGM_TRIM.rain, now, .5); }
+    else tr.gain.gain.value = bgm.mode === name ? BGM_TRIM[name] : 0;
+    tr.src = bgm.ctx.createBufferSource(); tr.src.buffer = tr.buf; tr.src.loop = true;
+    tr.src.connect(tr.gain); tr.gain.connect(bgm.master);
+    tr.src.start(0, off);
+  }
+  function bgmStart() {   // ユーザー操作の中で呼ぶ(ブラウザの自動再生制限のため)
+    if (!bgm.on) return;
+    if (!ensureCtx()) bgm.failed = true;
+    if (bgm.failed || !bgm.ctx) { bgmFallback(); return; }
+    bgm.mode = bgmWanted();
+    // 今の天気の曲を最優先で読み込み、続けて残りも読み込む
+    const order = [bgm.mode, ...Object.keys(BGM_FILES).filter(n => n !== bgm.mode)];
+    order.reduce((p, n) => p.then(() => bgmLoadTrack(n)), Promise.resolve());
+    for (const n of order) bgmPlayTrack(n);
+  }
+  function bgmStop() {
+    for (const n in bgm.tracks) {
+      const tr = bgm.tracks[n];
+      if (tr.src) { try { tr.src.stop(); } catch (e) {} tr.src.disconnect(); tr.src = null; }
+    }
+    bgm.t0 = 0;
+    if (bgm.el) bgm.el.pause();
+  }
+  function bgmSetOn(on) {
+    bgm.on = on; store.set('pr_music', on ? 'on' : 'off');
+    if (on) bgmStart(); else bgmStop();
+  }
+  function bgmTick(t) {   // 天気が変わったら曲をクロスフェード(0.2秒ごとに確認)
+    if (!bgm.on || t - bgm.last < 200) return;
+    bgm.last = t;
+    const want = bgmWanted();
+    if (want === bgm.mode) return;
+    bgm.mode = want;
+    if (bgm.ctx && !bgm.failed) {
+      if (want === 'rain') bgmPlayTrack('rain');   // 雨の曲を頭から始める
+      else if (bgm.tracks.rain && bgm.tracks.rain.src) setTimeout(() => {   // 雨が止んだら、フェードアウト後に雨の曲を止める(次は頭から)
+        const tr = bgm.tracks.rain;
+        if (bgm.mode !== 'rain' && tr && tr.src) { try { tr.src.stop(); } catch (e) {} tr.src.disconnect(); tr.src = null; tr.gain = null; }
+      }, 5000);
+      for (const n in BGM_FILES) {
+        const tr = bgm.tracks[n];
+        if (tr && tr.gain) tr.gain.gain.setTargetAtTime(n === want ? BGM_TRIM[n] : 0, bgm.ctx.currentTime, 1.0);
+      }
+    } else if (bgm.el) bgmFallback();
+  }
+
+  // ================= 効果音(WebAudioで合成: BGMと同じ矩形波・三角波のやわらかい音) =================
+  const sfxState = { on: store.get('pr_sfx', 'on') !== 'off', out: null };
+  function ensureCtx() {   // BGMと効果音で同じ AudioContext を使う
+    if (!bgm.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      bgm.ctx = new AC();
+      bgm.master = bgm.ctx.createGain(); bgm.master.gain.value = .85; bgm.master.connect(bgm.ctx.destination);
+    }
+    if (bgm.ctx.state === 'suspended') bgm.ctx.resume();
+    return bgm.ctx;
+  }
+  // 音の種類: [開始Hz, 終了Hz, 長さ(秒), 音量, 開始の遅れ(秒)]。波形はすべてマイルドな矩形波
+  const SFX = {
+    move:   [[392, 392, .06, .085]],
+    rotate: [[523, 523, .05, .08], [659, 659, .08, .08, .05]],
+    soft:   [[262, 247, .045, .05]],
+    hard:   [[587, 175, .16, .09]],
+    touch:  [[165, 110, .13, .16]],
+    land:   [[131, 73, .22, .20], [262, 147, .10, .04]],
+    swap:   [[440, 440, .06, .08], [587, 587, .06, .08, .06], [494, 494, .08, .08, .12]],
+  };
+  let sfxWave = null;   // 奇数倍音だけの矩形波。高次の倍音は BGM と同じ式で小さくして丸くする
+  function sfxWaveFor(ctx) {
+    if (sfxWave && sfxWave.ctx === ctx) return sfxWave.w;
+    const N = 16, re = new Float32Array(N), im = new Float32Array(N);
+    for (let n = 1; n < N; n += 2) im[n] = (4 / (Math.PI * n)) * Math.exp(-Math.pow((n - 1) / 2, 1.5));
+    sfxWave = { ctx, w: ctx.createPeriodicWave(re, im) };
+    return sfxWave.w;
+  }
+  function sfx(name) {
+    if (!sfxState.on || titleOpen) return;
+    const ctx = ensureCtx(); if (!ctx || ctx.state !== 'running') return;
+    if (!sfxState.out) {
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = .4;
+      const g = ctx.createGain(); g.gain.value = .7;
+      lp.connect(g); g.connect(ctx.destination); sfxState.out = lp;
+    }
+    const t0 = ctx.currentTime, wave = sfxWaveFor(ctx);
+    for (const [f0, f1, dur, vol, delay = 0] of SFX[name]) {
+      const t = t0 + delay, o = ctx.createOscillator(), g = ctx.createGain();
+      o.setPeriodicWave(wave);
+      o.frequency.setValueAtTime(f0, t);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      // ゆるやかに立ち上がり(12ms)、なだらかに消える(角を立てない)
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + .012);
+      g.gain.setTargetAtTime(0, t + .012 + dur * .25, dur * .3);
+      o.connect(g); g.connect(sfxState.out);
+      o.start(t); o.stop(t + dur * 2.2 + .06);
+    }
+  }
+  function sfxSetOn(on) { sfxState.on = on; store.set('pr_sfx', on ? 'on' : 'off'); }
+
+  // 自動再生制限で止まっていたら、最初の操作で再開(ジョイパッドのStartなどで始めたとき用)
+  ['pointerdown', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, () => { if (titleOpen) return; ensureCtx(); if (bgm.on) bgmStart(); }, { passive: true }));
+
   const menuEl = $('menu'), menuBody = $('menuBody'), padEl = $('pad');
   const rows = list => list.map(([k, v]) => `<div class="row"><b>${k}</b><span>${v}</span></div>`).join('');
-  const PAD_HELP = rows([
-    ['D-PAD / STICK', 'MOVE / DROP'], ['A', 'ROTATE RIGHT'], ['B / X', 'ROTATE LEFT'],
-    ['UP / RT', 'HARD DROP'], ['Y / LB / RB', 'SWAP WITH NEXT'], ['START', 'PAUSE / RESTART'], ['BACK', 'MENU'],
-  ]);
+  // メニューの文言(日本語環境なら日本語・標準フォント、それ以外は英語・ヨダカフォント)
+  const MENU_TXT = {
+    en: {
+      mode: 'CONTROL MODE', buttons: 'BUTTONS', flick: 'FLICK', keyboard: 'KEYBOARD', gamepad: 'GAMEPAD', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF',
+      btnRows: [['LEFT / RIGHT ARROW', 'MOVE (HOLD TO REPEAT)'], ['CURVED ARROWS', 'ROTATE LEFT / RIGHT'], ['DOWN TRIANGLE', 'DROP (HOLD TO REPEAT)'],
+                ['DOUBLE CHEVRON', 'HARD DROP'], ['TWO ARROWS', 'SWAP WITH NEXT']],
+      btnNote: 'PORTRAIT: BUTTONS AT THE BOTTOM. LANDSCAPE: MOVE / DROP ON THE LEFT, ROTATE / HARD DROP / SWAP ON THE RIGHT.',
+      flickRows: [['DRAG LEFT / RIGHT', 'MOVE'], ['TAP LEFT SIDE', 'ROTATE LEFT'], ['TAP RIGHT SIDE', 'ROTATE RIGHT'],
+                  ['TAP BOTTOM EDGE', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']],
+      flickNote: 'OPERATE ANYWHERE ON THE SCREEN. THE BOTTOM 20% IS THE DROP AREA. TAP TO RESTART AFTER GAME OVER.',
+      keyRows: [['4 / 6', 'MOVE'], ['1, 5 / 3', 'ROTATE LEFT / RIGHT'], ['2', 'DROP'], ['0', 'HARD DROP'],
+                ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['ENTER', 'RESTART']],
+      keyNote: 'ARROWS / Z / X / SPACE / C ALSO WORK.',
+      padRows: [['D-PAD / STICK', 'MOVE / DROP'], ['A', 'ROTATE RIGHT'], ['B / X', 'ROTATE LEFT'],
+                ['UP / RT', 'HARD DROP'], ['Y / LB / RB', 'SWAP WITH NEXT'], ['START', 'PAUSE / RESTART'], ['BACK', 'MENU']],
+    },
+    ja: {
+      mode: '操作モード', buttons: 'ボタン', flick: 'フリック', keyboard: 'キーボード', gamepad: 'ジョイパッド', music: '音楽', sfx: '効果音', on: 'オン', off: 'オフ',
+      btnRows: [['左 / 右の三角', '移動(長押しで連続)'], ['曲がった矢印', '左回転 / 右回転'], ['下向きの三角', 'ドロップ(長押しで連続)'],
+                ['二重のくの字', 'ハードドロップ'], ['左右の矢印', 'Next と入れ替え']],
+      btnNote: '縦持ちは画面の下にボタンが並びます。横持ちは、左に移動・ドロップ、右に回転・ハードドロップ・入れ替えが並びます。',
+      flickRows: [['左右にドラッグ', '移動'], ['画面の左側をタップ', '左回転'], ['画面の右側をタップ', '右回転'],
+                  ['画面の下端をタップ', 'ドロップ'], ['下にフリック', 'ハードドロップ'], ['上にフリック', 'Next と入れ替え']],
+      flickNote: '画面のどこでも操作できます。下の20%がドロップの範囲です。ゲームオーバー後はタップでリスタートします。',
+      keyRows: [['4 / 6', '左右に移動'], ['1, 5 / 3', '左回転 / 右回転'], ['2', 'ドロップ'], ['0', 'ハードドロップ'],
+                ['7, 8, 9', 'Next と入れ替え'], ['Esc, P', '一時停止'], ['Enter', 'リスタート']],
+      keyNote: '矢印キー、Z、X、Space、C でも操作できます。',
+      padRows: [['十字キー / スティック', '移動 / ドロップ'], ['A', '右回転'], ['B / X', '左回転'],
+                ['上 / RT', 'ハードドロップ'], ['Y / LB / RB', 'Next と入れ替え'], ['Start', '一時停止 / リスタート'], ['Back', 'メニュー']],
+    },
+  };
   function renderMenu() {
+    const T = MENU_TXT[isJa ? 'ja' : 'en'];
     let h = '';
     if (touchMode) {
-      h += `<h3>CONTROL MODE</h3><div class="seg">
-        <button type="button" data-mode="buttons" class="${gMode === 'buttons' ? 'on' : ''}">BUTTONS</button>
-        <button type="button" data-mode="flick" class="${gMode === 'flick' ? 'on' : ''}">FLICK</button></div><div class="desc">`;
+      h += `<h3>${T.mode}</h3><div class="seg">
+        <button type="button" data-mode="buttons" class="${gMode === 'buttons' ? 'on' : ''}">${T.buttons}</button>
+        <button type="button" data-mode="flick" class="${gMode === 'flick' ? 'on' : ''}">${T.flick}</button></div><div class="desc">`;
       h += gMode === 'buttons'
-        ? rows([['LEFT / RIGHT ARROW', 'MOVE (HOLD TO REPEAT)'], ['CURVED ARROWS', 'ROTATE LEFT / RIGHT'], ['DOWN TRIANGLE', 'DROP (HOLD TO REPEAT)'],
-                ['DOUBLE CHEVRON', 'HARD DROP'], ['TWO ARROWS', 'SWAP WITH NEXT']]) + '<div class="note">PORTRAIT: BUTTONS AT THE BOTTOM. LANDSCAPE: MOVE / DROP ON THE LEFT, ROTATE / HARD DROP / SWAP ON THE RIGHT.</div>'
-        : rows([['DRAG LEFT / RIGHT', 'MOVE'], ['TAP', 'ROTATE RIGHT'], ['TWO-FINGER TAP', 'ROTATE LEFT'],
-                ['DRAG DOWN', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']]) + '<div class="note">OPERATE ANYWHERE ON THE SCREEN. TAP TO RESTART AFTER GAME OVER.</div>';
+        ? rows(T.btnRows) + `<div class="note">${T.btnNote}</div>`
+        : rows(T.flickRows) + `<div class="note">${T.flickNote}</div>`;
       h += '</div>';
     } else {
-      h += '<h3>KEYBOARD</h3>' + rows([
-        ['4 / 6', 'MOVE'], ['1, 5 / 3', 'ROTATE LEFT / RIGHT'], ['2', 'DROP'], ['0', 'HARD DROP'],
-        ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['ENTER', 'RESTART'],
-      ]) + '<div class="note">ARROWS / Z / X / SPACE / C ALSO WORK.</div>';
+      h += `<h3>${T.keyboard}</h3>` + rows(T.keyRows) + `<div class="note">${T.keyNote}</div>`;
     }
-    h += '<h3>GAMEPAD</h3>' + PAD_HELP;
+    h += `<h3>${T.gamepad}</h3>` + rows(T.padRows);
+    h += `<h3>${T.music}</h3><div class="seg"><button type="button" data-music="on" class="${bgm.on ? 'on' : ''}">${T.on}</button><button type="button" data-music="off" class="${bgm.on ? '' : 'on'}">${T.off}</button></div>`;
+    h += `<h3>${T.sfx}</h3><div class="seg"><button type="button" data-sfx="on" class="${sfxState.on ? 'on' : ''}">${T.on}</button><button type="button" data-sfx="off" class="${sfxState.on ? '' : 'on'}">${T.off}</button></div>`;
     menuBody.innerHTML = h;
   }
   function openMenu() {
@@ -739,9 +922,13 @@
   }
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('closeBtn').addEventListener('click', closeMenu);
-  $('restartBtn').addEventListener('click', () => { closeMenu(); reset(); });
+  $('restartBtn').addEventListener('click', () => { closeMenu(); goTitle(); });   // 「Back To Title」
   menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
   menuBody.addEventListener('click', e => {
+    const m = e.target.closest('[data-music]');
+    if (m) { bgmSetOn(m.dataset.music === 'on'); renderMenu(); return; }
+    const sx = e.target.closest('[data-sfx]');
+    if (sx) { sfxSetOn(sx.dataset.sfx === 'on'); renderMenu(); return; }
     const b = e.target.closest('[data-mode]');
     if (!b) return;
     gMode = b.dataset.mode; store.set('pr_mode', gMode);
@@ -799,13 +986,21 @@
   function startGame() {
     if (!titleOpen) return;
     titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn');
-    reset(); layout();
+    reset(); layout(); ensureCtx(); bgmStart();
+  }
+  function goTitle() {   // タイトル画面へ戻る(曲は止める。START で最初から)
+    titleOpen = true; howtoOpen = false; howtoEl.hidden = true;
+    titleEl.hidden = false; document.body.classList.add('titleOn');
+    bgmStop(); fitTitle();
   }
   function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; }
   function closeHowto() { howtoOpen = false; howtoEl.hidden = true; }
   // 日本語環境ならヘルプも日本語で表示
   $('howtoPanel').classList.toggle('ja', isJa);
   $('howtoBack').textContent = isJa ? '戻る' : 'Back';
+  $('menuPanel').classList.toggle('ja', isJa);
+  $('restartBtn').textContent = 'Back To Title';
+  $('closeBtn').textContent = 'Close';
   $('startBtn').addEventListener('click', startGame);
   $('howtoBtn').addEventListener('click', openHowto);
   $('howtoBack').addEventListener('click', closeHowto);
@@ -877,12 +1072,14 @@
     const t = e.changedTouches[0], dt = performance.now() - g.t0;
     const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
     if (over) { if (!g.moved && dt < 400) reset(); }
-    else if (g.axis === 'v') {   // 縦: 速ければフリック、ゆっくりならドロップ(下)
+    else if (g.axis === 'v') {   // 縦: 速くはじいたときだけ(下=ハードドロップ / 上=入れ替え)。ゆっくりのドラッグは何もしない
       if (dy > 0 && dt < 350 && dy > 60) act('hard');
       else if (dy < 0 && dt < 350 && -dy > 60) act('swap');
-      else if (dy > 0) for (let n = Math.min(20, Math.floor(dy / (CELL * viewScale))); n > 0; n--) act('soft');
     }
-    else if (!g.axis && dt < 300 && Math.hypot(dx, dy) < 12) act(g.fingers >= 2 ? 'rotL' : 'rotR');
+    else if (!g.axis && dt < 300 && Math.hypot(dx, dy) < 12) {   // タップ: 下端2割=ドロップ / 左側=左回転 / 右側=右回転
+      if (g.y0 > vh() * 0.8) act('soft');
+      else act(g.x0 < vw() / 2 ? 'rotL' : 'rotR');
+    }
     g = null;
   }, { passive: false });
   document.addEventListener('touchcancel', () => { g = null; });
