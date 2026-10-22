@@ -224,7 +224,7 @@
     <h3>Smartphone</h3>
     <p>Choose one of two control modes from the MENU button (the other mode is turned off).</p>
     <h4>Buttons</h4>
-    <p>On-screen icon buttons. Top row: left arrow and right arrow move the piece; the two curved arrows rotate it left / right. Bottom row: the down triangle drops the piece, the double arrows swap with Next, and the double down chevron hard-drops. Hold the move arrows or the down triangle to repeat. In portrait they sit at the bottom; in landscape, move / drop are on the left and rotate / swap / hard drop are on the right.</p>
+    <p>On-screen buttons appear at the bottom of the screen.</p>
     <h4>Flick</h4>
     <table>
       <tr><td>Drag left / right</td><td>Move</td></tr>
@@ -276,7 +276,7 @@
     <h3>スマホ</h3>
     <p>MENU ボタンから、操作モードを2つのうち1つ選べます(選ばなかった方の操作は無効になります)。</p>
     <h4>ボタン</h4>
-    <p>画面上のアイコンボタンで操作します。上段は、左向き・右向きの三角が左右移動、2つの曲がった矢印が左回転・右回転です。下段は、下向きの三角がドロップ、左右の矢印が Next との入れ替え、下向きの二重のくの字がハードドロップです。移動の三角と下向きの三角は長押しで連続して動きます。縦持ちでは画面の下に並び、横持ちでは左に移動・ドロップ、右に回転・入れ替え・ハードドロップが並びます。</p>
+    <p>画面の下に操作ボタンが出ます。</p>
     <h4>フリック</h4>
     <table>
       <tr><td>左右にドラッグ</td><td>移動</td></tr>
@@ -976,9 +976,8 @@
   const MENU_TXT = {
     en: {
       mode: 'CONTROL MODE', buttons: 'BUTTONS', flick: 'FLICK', keyboard: 'KEYBOARD', gamepad: 'GAMEPAD', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF',
-      btnRows: [['LEFT / RIGHT ARROW', 'MOVE (HOLD TO REPEAT)'], ['CURVED ARROWS', 'ROTATE LEFT / RIGHT'], ['DOWN TRIANGLE', 'DROP (HOLD TO REPEAT)'],
-                ['DOUBLE CHEVRON', 'HARD DROP'], ['TWO ARROWS', 'SWAP WITH NEXT']],
-      btnNote: 'PORTRAIT: BUTTONS AT THE BOTTOM. LANDSCAPE: MOVE / DROP ON THE LEFT, ROTATE / HARD DROP / SWAP ON THE RIGHT.',
+      btnRows: [],
+      btnNote: 'ON-SCREEN BUTTONS APPEAR AT THE BOTTOM OF THE SCREEN.',
       flickRows: [['DRAG LEFT / RIGHT', 'MOVE'], ['TAP LEFT SIDE', 'ROTATE LEFT'], ['TAP RIGHT SIDE', 'ROTATE RIGHT'],
                   ['TAP BOTTOM EDGE', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']],
       flickNote: 'OPERATE ANYWHERE ON THE SCREEN. THE BOTTOM 20% IS THE DROP AREA.',
@@ -990,9 +989,8 @@
     },
     ja: {
       mode: '操作モード', buttons: 'ボタン', flick: 'フリック', keyboard: 'キーボード', gamepad: 'ジョイパッド', music: '音楽', sfx: '効果音', on: 'ON', off: 'OFF',
-      btnRows: [['左 / 右の三角', '移動(長押しで連続)'], ['曲がった矢印', '左回転 / 右回転'], ['下向きの三角', 'ドロップ(長押しで連続)'],
-                ['二重のくの字', 'ハードドロップ'], ['左右の矢印', 'Next と入れ替え']],
-      btnNote: '縦持ちは画面の下にボタンが並びます。横持ちは、左に移動・ドロップ、右に回転・ハードドロップ・入れ替えが並びます。',
+      btnRows: [],
+      btnNote: '画面の下に操作ボタンが出ます。',
       flickRows: [['左右にドラッグ', '移動'], ['画面の左側をタップ', '左回転'], ['画面の右側をタップ', '右回転'],
                   ['画面の下端をタップ', 'ドロップ'], ['下にフリック', 'ハードドロップ'], ['上にフリック', 'Next と入れ替え']],
       flickNote: '画面のどこでも操作できます。下の20%がドロップの範囲です。',
