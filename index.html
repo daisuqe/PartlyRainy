@@ -102,6 +102,19 @@
   #licensePanel pre { margin:8px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; font-size:13px; }
   #licensePanel button.close { display:block; margin:18px 0 0 auto; font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
                                color:#fff; background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:8px 22px; cursor:pointer; }
+  /* ---- アプリ一覧へ移動するボタン(タイトル画面の右上)と、確認のダイアログ ---- */
+  #appsBtn { position:absolute; top:max(10px, env(safe-area-inset-top)); right:max(10px, env(safe-area-inset-right)); background:none; border:none; padding:4px; cursor:pointer;
+             opacity:.7; -webkit-tap-highlight-color:transparent; }
+  #appsBtn:hover { opacity:1; }
+  #appsBtn:focus-visible { outline:2px solid #fff; outline-offset:2px; border-radius:4px; opacity:1; }
+  #appsIcon { display:block; width:48px; height:48px; image-rendering:pixelated; }
+  #leave { position:fixed; inset:0; z-index:46; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #leavePanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(380px,100%); padding:22px;
+                font:15px/1.7 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; text-align:center; }
+  #leavePanel p { margin:0 0 18px; }
+  #leaveBtns { display:flex; gap:12px; justify-content:center; }
+  .lbtn { width:110px; box-sizing:border-box; font-family:'Yodaka',system-ui,sans-serif; font-size:16px; letter-spacing:.06em; text-transform:uppercase; color:#fff;
+          background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:9px 0; cursor:pointer; }
   /* ---- ランキング / スコア登録 ---- */
   #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
@@ -224,6 +237,7 @@
 <div id="title">
   <img id="titleImg" src="title.png" alt="Partly Rainy" draggable="false">
   <div id="titleText" hidden>Partly<br>Rainy</div>
+  <button id="appsBtn" type="button" aria-label="App list"><canvas id="appsIcon" width="16" height="16"></canvas></button>
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
@@ -235,6 +249,12 @@
   </div>
 </div>
 <div id="rank" hidden><div id="rankPanel"></div></div>
+<div id="leave" hidden>
+  <div id="leavePanel" role="dialog" aria-modal="true" aria-labelledby="leaveText">
+    <p id="leaveText"></p>
+    <div id="leaveBtns"><button class="lbtn" id="leaveYes" type="button">Yes</button><button class="lbtn" id="leaveNo" type="button">No</button></div>
+  </div>
+</div>
 <div id="license" hidden>
   <div id="licensePanel" role="dialog" aria-modal="true" aria-labelledby="licenseTitle">
     <h2 class="yk" id="licenseTitle">License</h2>
@@ -882,7 +902,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false, licenseOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false, licenseOpen = false, leaveOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -1255,6 +1275,36 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     bgmStop(); fitTitle();
   }
   // ---- LICENSE の画面(タイトル画面の一番下の著作権の表示から開く) ----
+  // ---- アプリ一覧への移動(右上のアイコン → 確認ダイアログ → Yes で移動) ----
+  const APPS_ICON = [
+    '......###...###.',
+    '.....#...#.#...#',
+    '.....#...#.#...#',
+    '.....#..#..#..#.',
+    '.....#..#..#..#.',
+    '....##..####..#.',
+    '..##.......#..#.',
+    '.#............#.',
+    '#.............#.',
+    '#..............#',
+    '############...#',
+    '............#..#',
+    '.###########...#',
+    '.#............#.',
+    '..##........##..',
+    '....########....'
+  ];   // 16x16 の白い部分(# が白)
+  { const g = $('appsIcon').getContext('2d'); g.fillStyle = '#fff';
+    APPS_ICON.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') g.fillRect(x, y, 1, 1); })); }
+  const leaveEl = $('leave');
+  $('leaveText').textContent = isJa ? 'アプリ一覧に移動します。\nこのゲームを離れますがよろしいですか？' : 'This will take you to the app list.\nDo you want to leave this game?';
+  $('leaveText').style.whiteSpace = 'pre-line';
+  function openLeave() { leaveOpen = true; leaveEl.hidden = false; navReset(); nav.c = 1; $('leaveNo').focus(); }
+  function closeLeave() { leaveOpen = false; leaveEl.hidden = true; navApply(); $('appsBtn').focus(); }
+  $('appsBtn').addEventListener('click', openLeave);
+  $('leaveNo').addEventListener('click', closeLeave);
+  $('leaveYes').addEventListener('click', () => { location.href = 'https://daisuqe.github.io/'; });
+  leaveEl.addEventListener('click', e => { if (e.target === leaveEl) closeLeave(); });
   const licenseEl = $('license');
   function openLicense() { licenseOpen = true; licenseEl.hidden = false; $('licensePanel').scrollTop = 0; navReset(); $('licenseClose').focus(); }
   function closeLicense() { licenseOpen = false; licenseEl.hidden = true; navApply(); $('licenseBtn').focus(); }
@@ -1267,6 +1317,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   // ---- メニュー類をキーボード / ジョイパッドで操作(上下左右で選び、Enter / A で決定、Esc / B で戻る) ----
   const nav = { r: 0, c: 0, active: false };   // active: キーボード/ジョイパッドで操作中(このときだけ選択を明るく表示)
   function navRows() {   // いま操作できる項目を、行ごとに並べて返す(いちばん手前の画面だけ)
+    if (leaveOpen) return [[$('leaveYes'), $('leaveNo')]];
     if (licenseOpen) return [[$('licenseClose')]];
     if (rankOpen) { const b = [...rankPanel.querySelectorAll('button')]; return b.length ? [b] : []; }
     if (howtoOpen) return [[$('howtoBack')]];
@@ -1306,7 +1357,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (b && !b.disabled) b.click();
     setTimeout(navApply, 30);   // 押した結果で表示が作り直されても、選択の枠を付け直す
   }
-  function overlayBack() { if (licenseOpen) closeLicense(); else if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
+  function overlayBack() { if (leaveOpen) closeLeave(); else if (licenseOpen) closeLicense(); else if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
   const NAV_KEYS = {
     ArrowUp: [0, -1], Numpad8: [0, -1], ArrowDown: [0, 1], Numpad2: [0, 1],
     ArrowLeft: [-1, 0], Numpad4: [-1, 0], ArrowRight: [1, 0], Numpad6: [1, 0],
@@ -1317,7 +1368,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     return false;
   }
   function overlayPad(k) {   // ジョイパッド: メニュー類が開いていれば処理して true
-    if (!(licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
+    if (!(leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
     if (k === 'rotR') nav.active = true;   // A で決定するときも、操作中として扱う
     if (k === 'hard' || k === 'up') navMove(0, -1);   // 十字キー上 / スティック上
     else if (k === 'soft') navMove(0, 1);
@@ -1354,9 +1405,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   addEventListener('keydown', e => {
     const k = e.code;
     if (goBarOpen && e.target && e.target.id === 'nameIn') return;   // 名前の入力中はゲームのキーを無効に
-    if (e.target && e.target.id === 'licenseBtn' && (k === 'Enter' || k === 'NumpadEnter' || k === 'Space')) return;   // 著作権の表示は、Enter / Space で、ブラウザの標準の動きで開く
-    if (licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
-      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
+    if (e.target && (e.target.id === 'licenseBtn' || e.target.id === 'appsBtn') && (k === 'Enter' || k === 'NumpadEnter' || k === 'Space')) return;   // 著作権の表示は、Enter / Space で、ブラウザの標準の動きで開く
+    if (leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
+      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
       if (navKey(k)) e.preventDefault();
       return;
     }
@@ -1388,7 +1439,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license');
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !leaveOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license, #leave');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
