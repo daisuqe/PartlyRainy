@@ -24,6 +24,7 @@
   img, canvas { -webkit-user-drag:none; user-drag:none; -webkit-touch-callout:none; }   /* 画像をドラッグ・長押しで保存させない */
   #bg { position:fixed; left:0; top:0; width:100%; height:100%; z-index:-1; }
   #wrap { position:absolute; left:50%; top:0; width:max-content; display:flex; gap:20px; padding:16px; align-items:flex-start; transform-origin:top center; }
+  #fx { position:absolute; left:0; top:0; z-index:5; pointer-events:none; }
   #board { background:#0a0c11; border:2px solid #fff; display:block; }
   #side { width:240px; display:flex; flex-direction:column; gap:0; }
   .box { padding:1px 12px; }
@@ -206,6 +207,7 @@
 <canvas id="bg"></canvas>
 <div id="wrap">
   <canvas id="board" width="300" height="600"></canvas>
+  <canvas id="fx" width="1100" height="1600"></canvas>   <!-- 消去の粒を描く: 盤面の外にも飛び出せるよう、盤面より大きい -->
   <div id="gobar" hidden>
     <input id="nameIn" maxlength="12" autocomplete="off">
     <div id="goRow"><button class="main" id="goSubmit" type="button"></button><button id="goExit" type="button">Exit</button></div>
@@ -459,6 +461,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     bag = []; count = Number(new URLSearchParams(location.search).get('count')) || 0;   // ?count=9 で途中から開始(確認用)
     hideGoBar();
+    clearing = null; parts = []; board.style.transform = ''; clearFx();
     score = 0; lines = 0; level = 1; over = false; paused = false; overShown = false;
     cur = newPiece(); place(cur);
     next = newPiece();
@@ -514,24 +517,75 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       const gy = cur.y + r, gx = cur.x + c;
       if (v && gy >= 0) grid[gy][gx] = cur.color;
     }));
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (grid[r].every(Boolean)) {
-        grid.splice(r, 1);
-        grid.unshift(Array(COLS).fill(null));
-        cleared++; r++;
-      }
-    }
-    if (cleared) {
-      score += 100 * 2 ** (cleared - 1);
-      lines += cleared;
-      level = Math.floor(lines / 10) + 1;
-    }
+    const rows = [];
+    for (let r = 0; r < ROWS; r++) if (grid[r].every(Boolean)) rows.push(r);
+    if (rows.length) { startClear(rows); return; }
+    spawnNext();
+  }
+  function spawnNext() {   // 次のピースを出す
     cur = next; place(cur);
     next = newPiece();
     if (hit(cur.m, cur.x, cur.y)) over = true;
     dropAt = performance.now();
     updateHud();
+  }
+
+  // ---- ライン消去の演出(0.7〜1秒、ゲームは止まる): 白く点滅 → 粒になって弾ける → 行が消える ----
+  let clearing = null, parts = [], fxLast = 0;
+  const FXM = 400, fxc = document.getElementById('fx'), fx = fxc.getContext('2d');   // 盤面の外まで、FXM px の余白
+  function clearFx() { fx.clearRect(0, 0, fxc.width, fxc.height); }
+  function startClear(rows) {
+    const now = performance.now();
+    clearing = { rows, t0: now, dur: Math.min(1000, 700 + 100 * (rows.length - 1)), burst: false };
+    parts = []; fxLast = now;
+    sfx('clear', rows.length);
+  }
+  function finishClear() {
+    const n = clearing.rows.length;
+    [...clearing.rows].sort((x, y) => x - y).forEach(r => { grid.splice(r, 1); grid.unshift(Array(COLS).fill(null)); });
+    score += 100 * 2 ** (n - 1);
+    lines += n;
+    level = Math.floor(lines / 10) + 1;
+    clearing = null; parts = []; board.style.transform = ''; clearFx();
+    spawnNext();
+  }
+  function drawClearFx(now) {   // 揃った行の上に、演出を重ねて描く
+    const c = clearing, n = c.rows.length, p = Math.min(1, (now - c.t0) / c.dur);
+    const dt = Math.min(.05, (now - fxLast) / 1000); fxLast = now;
+    const BURST = .42;
+    fxc.style.left = (board.offsetLeft + 2 - FXM) + 'px'; fxc.style.top = (board.offsetTop + 2 - FXM) + 'px';
+    clearFx();
+    if (!c.burst && p >= BURST) {   // 行のブロックを、色つきの粒にして飛ばす
+      c.burst = true;
+      const cx = COLS * CELL / 2, cy = (c.rows.reduce((a, b) => a + b, 0) / n + .5) * CELL;   // 消えるラインの中心
+      for (const r of c.rows) for (let col = 0; col < COLS; col++)
+        for (let k = 0; k < 5; k++) {   if (Math.random() < .6) continue;   // 等速で、中心から外側へ(角度に少しばらつきを持たせる)
+          const x = col * CELL + Math.random() * CELL, y = r * CELL + Math.random() * CELL;
+          const ang = Math.atan2(y - cy, x - cx) + (Math.random() - .5) * 1.4, spd = (80 + Math.random() * 140 + 20 * n) * .315;
+          parts.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, s: 6 + Math.random() * 4.8, life: .4 + Math.random() * .2, age: 0 });
+        }
+    }
+    if (!c.burst) {   // 白い点滅
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, .55 + p / BURST * .6)})`;   // 真っ白に光っていく
+      for (const r of c.rows) ctx.fillRect(0, r * CELL, COLS * CELL, CELL);
+    } else {   // 光の筋が細くなって消え、粒が飛び散る
+      const q = (p - BURST) / (1 - BURST);
+      ctx.fillStyle = `rgba(255,255,255,${1 - q * q})`;
+      for (const r of c.rows) ctx.fillRect(0, r * CELL + CELL * q * .5, COLS * CELL, CELL * (1 - q));
+      fx.fillStyle = '#fff';
+      for (const pt of parts) {
+        pt.age += dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+        if (pt.age >= pt.life) continue;
+        fx.fillRect(pt.x + FXM - pt.s / 2, pt.y + FXM - pt.s / 2, pt.s, pt.s);
+      }
+    }
+    // 得点(+100 など)が上へ消えていく
+    const mid = c.rows[Math.floor(n / 2)];
+    ctx.textAlign = 'center'; ctx.font = '26px Yodaka, system-ui';
+    ctx.fillStyle = `rgba(255,255,255,${Math.max(0, 1 - p)})`;
+    ctx.fillText('+' + 100 * 2 ** (n - 1), board.width / 2, mid * CELL - p * 50);
+    // 盤面を、はじめだけ少し揺らす(行が多いほど大きく)
+    board.style.transform = !c.burst ? `translate(${((Math.random() - .5) * (2 + n * 1.5)).toFixed(1)}px, ${((Math.random() - .5) * (2 + n * 1.5)).toFixed(1)}px)` : '';
   }
 
   function updateHud() {
@@ -769,19 +823,22 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
-        if (grid[r][c]) {
+        if (grid[r][c] && !(clearing && clearing.burst && clearing.rows.includes(r))) {
           const on = (rr, cc) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && grid[rr][cc];
           cell(ctx, c * CELL, r * CELL, CELL, grid[r][c], { t: !on(r - 1, c), l: !on(r, c - 1), r: !on(r, c + 1), b: !on(r + 1, c) });
         }
-    if (!over) {
+    if (clearing) drawClearFx(performance.now());
+    if (!over && !clearing) {
       let gy = cur.y;
       while (!hit(cur.m, cur.x, gy + 1)) gy++;
       ctx.globalAlpha = .22;
       drawPiece(ctx, cur.m, cur.s, cur.x * CELL, gy * CELL, CELL, cur.color);
       ctx.globalAlpha = 1;
     }
-    drawPiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL, cur.color, true);
-    if (!over) outlinePiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL);
+    if (!clearing) {
+      drawPiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL, cur.color, true);
+      if (!over) outlinePiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL);
+    }
 
     // next
     nctx.clearRect(0, 0, nextCv.width, nextCv.height);
@@ -807,7 +864,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   function loop(t) {
     pollPad(t);
     bgmTick(t);
-    if (!titleOpen && !over && !paused && t - dropAt >= interval()) {
+    if (clearing && performance.now() - clearing.t0 >= clearing.dur) finishClear();   // 演出が終わったら、行を消して次の駒へ
+    if (!titleOpen && !over && !paused && !clearing && t - dropAt >= interval()) {
       dropAt = t;
       if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
     }
@@ -831,7 +889,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     soft: softDrop, hard: hardDrop, swap: () => { if (swapNext()) sfx('swap'); },
   };
   function act(name) {
-    if (titleOpen || menuOpen || over || paused) return;
+    if (titleOpen || menuOpen || over || paused || clearing) return;   // ライン消去の演出中は、操作を受け付けない
     ACTIONS[name](); updateHud();
   }
   function togglePause() {
@@ -995,6 +1053,14 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     touch:  [[165, 110, .13, .16]],
     land:   [[131, 73, .22, .20], [262, 147, .10, .04]],
     swap:   [[440, 440, .06, .08], [587, 587, .06, .08, .06], [494, 494, .08, .08, .12]],
+    // ライン消去: 上がっていく音(1ライン=3音、ラインが多いほど音が増える)。3ライン以上は低い音を重ね、4ライン以上は、ドスンという音から
+    clear: n => {
+      const notes = [523, 659, 784, 1047, 1319, 1568, 2093], k = Math.min(notes.length, 2 + n), out = [];
+      for (let i = 0; i < k; i++) out.push([notes[i], notes[i], i === k - 1 ? .34 : .1, .09, i * .085]);
+      if (n >= 3) out.push([262, 262, .3, .07, (k - 1) * .085]);
+      if (n >= 4) out.unshift([130, 65, .25, .18, 0]);
+      return out;
+    },
   };
   let sfxWave = null;   // 奇数倍音だけの矩形波。高次の倍音は BGM と同じ式で小さくして丸くする
   function sfxWaveFor(ctx) {
@@ -1004,7 +1070,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     sfxWave = { ctx, w: ctx.createPeriodicWave(re, im) };
     return sfxWave.w;
   }
-  function sfx(name) {
+  function sfx(name, arg) {
     if (!sfxState.on || titleOpen) return;
     const ctx = ensureCtx(); if (!ctx || ctx.state !== 'running') return;
     if (!sfxState.out) {
@@ -1013,7 +1079,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       lp.connect(g); g.connect(ctx.destination); sfxState.out = lp;
     }
     const t0 = ctx.currentTime, wave = sfxWaveFor(ctx);
-    for (const [f0, f1, dur, vol, delay = 0] of SFX[name]) {
+    const spec = typeof SFX[name] === 'function' ? SFX[name](arg) : SFX[name];
+    for (const [f0, f1, dur, vol, delay = 0] of spec) {
       const t = t0 + delay, o = ctx.createOscillator(), g = ctx.createGain();
       o.setPeriodicWave(wave);
       o.frequency.setValueAtTime(f0, t);
@@ -1183,6 +1250,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     titleOpen = true; howtoOpen = false; howtoEl.hidden = true;
     titleEl.hidden = false; document.body.classList.add('titleOn'); closeChooser();
     hideGoBar();
+    clearing = null; parts = []; board.style.transform = ''; clearFx();
     cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
   }
