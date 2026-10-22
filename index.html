@@ -1,9 +1,17 @@
+<!--
+  Partly Rainy
+  Copyright (c) 2026 daisuqe. All rights reserved.
+  無断での複製・改変・再配布・転載を禁じます。詳しくは LICENSE を見てください。
+  Unauthorized copying, modification, redistribution, and reposting are prohibited. See LICENSE.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Partly Rainy</title>
+<meta name="author" content="daisuqe">
+<meta name="copyright" content="Copyright (c) 2026 daisuqe. All rights reserved.">
 <style>
   @font-face { font-family:'Yodaka'; src:url('yodaka.woff') format('woff'); font-display:block; }
   :root { --bg:#10131a; --fg:#e6e9f0; --pb:rgba(10,12,17,.75); }
@@ -69,6 +77,30 @@
   #goMsg { color:#ffd479; text-align:center; text-shadow:0 1px 3px rgba(0,0,0,.8); }
   #goMsg:empty { display:none; }
   body.gobar #pad { display:none !important; }
+  /* ---- 著作権の表示(タイトル画面の一番下)と LICENSE の画面 ---- */
+  #licenseBtn { position:absolute; left:50%; bottom:max(8px, env(safe-area-inset-bottom)); transform:translateX(-50%); max-width:calc(100vw - 16px);
+                font:inherit; font-family:system-ui,"Segoe UI",sans-serif; font-size:clamp(9px, 2.9vw, 12px); line-height:1.3; text-transform:none; letter-spacing:0;
+                text-align:center; color:rgba(255,255,255,.6); text-shadow:0 1px 2px rgba(0,0,0,.45); background:none; border:none; padding:4px 6px; cursor:pointer;
+                -webkit-tap-highlight-color:transparent; }
+  #licenseBtn:hover { color:rgba(255,255,255,.9); text-decoration:underline; }
+  #licenseBtn:focus-visible { outline:2px solid #fff; outline-offset:2px; border-radius:4px; color:#fff; }
+  #title { padding-bottom:36px; }   /* 一番下の表示と、ボタンなどが重ならないよう、下に余白をとる */
+  @media (max-height:520px) {   /* 横向きの小さい画面(高さ390px など): 間隔と大きさを小さくして、すべて収める */
+    #title { gap:10px; padding:8px 16px 34px; }
+    #titleImg, #titleText { margin-bottom:10px; }
+    #titleText { font-size:clamp(28px, 9vh, 52px); line-height:1; }
+    .tbtn { font-size:18px; padding:8px 0; }
+    #chooser { gap:10px; }
+    #chooserText { font-size:18px; }
+  }
+  #license { position:fixed; inset:0; z-index:45; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #licensePanel { background:rgba(10,12,17,.88); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(560px,100%); max-height:100%;
+                  overflow:auto; padding:18px 22px; font:14px/1.65 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
+                  -webkit-user-select:text; user-select:text; }
+  #licensePanel h2.yk { margin:0 0 8px; font-family:'Yodaka',system-ui,sans-serif; font-weight:400; font-size:22px; letter-spacing:.06em; text-transform:uppercase; color:#fff; }
+  #licensePanel pre { margin:8px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; font-size:13px; }
+  #licensePanel button.close { display:block; margin:18px 0 0 auto; font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+                               color:#fff; background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:8px 22px; cursor:pointer; }
   /* ---- ランキング / スコア登録 ---- */
   #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
@@ -193,6 +225,7 @@
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
+  <button id="licenseBtn" type="button">&copy; 2026 daisuqe. All rights reserved.</button>
   <div id="chooser" hidden>
     <div id="chooserText">GIANT PIECES</div>
     <button class="tbtn" id="giant10" type="button">10%</button>
@@ -200,6 +233,22 @@
   </div>
 </div>
 <div id="rank" hidden><div id="rankPanel"></div></div>
+<div id="license" hidden>
+  <div id="licensePanel" role="dialog" aria-modal="true" aria-labelledby="licenseTitle">
+    <h2 class="yk" id="licenseTitle">License</h2>
+    <pre id="licenseText">Copyright (c) 2026 daisuqe. All rights reserved.
+This game ("Partly Rainy"), including its source code, graphics, music data, and
+text, is the property of the copyright holder. No license is granted to copy,
+modify, distribute, sublicense, sell, or publish any part of it, in source or
+compiled form, without prior written permission from the copyright holder.
+You may play the game as published at its official page.
+本ゲーム「Partly Rainy」(ソースコード、画像、音楽データ、文章を含む)の著作権は、
+daisuqe が保有します。著作権者の事前の書面による許可なく、全部または一部を、
+複製、改変、再配布、転載、販売、公開することを禁じます。
+公式に公開されているページで、遊ぶことは自由です。</pre>
+    <button class="close" id="licenseClose" type="button">Close</button>
+  </div>
+</div>
 <div id="howto" hidden>
   <div id="howtoPanel">
     <div data-lang="en">
@@ -775,7 +824,7 @@
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false, licenseOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -1137,12 +1186,20 @@
     cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
   }
+  // ---- LICENSE の画面(タイトル画面の一番下の著作権の表示から開く) ----
+  const licenseEl = $('license');
+  function openLicense() { licenseOpen = true; licenseEl.hidden = false; $('licensePanel').scrollTop = 0; navReset(); $('licenseClose').focus(); }
+  function closeLicense() { licenseOpen = false; licenseEl.hidden = true; navApply(); $('licenseBtn').focus(); }
+  $('licenseBtn').addEventListener('click', openLicense);
+  $('licenseClose').addEventListener('click', closeLicense);
+  licenseEl.addEventListener('click', e => { if (e.target === licenseEl) closeLicense(); });   // 画面の外を押しても閉じる
   function openHowto() { howtoOpen = true; howtoEl.hidden = false; $('howtoPanel').scrollTop = 0; navReset(); }
   function closeHowto() { howtoOpen = false; howtoEl.hidden = true; navApply(); }
 
   // ---- メニュー類をキーボード / ジョイパッドで操作(上下左右で選び、Enter / A で決定、Esc / B で戻る) ----
   const nav = { r: 0, c: 0, active: false };   // active: キーボード/ジョイパッドで操作中(このときだけ選択を明るく表示)
   function navRows() {   // いま操作できる項目を、行ごとに並べて返す(いちばん手前の画面だけ)
+    if (licenseOpen) return [[$('licenseClose')]];
     if (rankOpen) { const b = [...rankPanel.querySelectorAll('button')]; return b.length ? [b] : []; }
     if (howtoOpen) return [[$('howtoBack')]];
     if (menuOpen) {
@@ -1181,7 +1238,7 @@
     if (b && !b.disabled) b.click();
     setTimeout(navApply, 30);   // 押した結果で表示が作り直されても、選択の枠を付け直す
   }
-  function overlayBack() { if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
+  function overlayBack() { if (licenseOpen) closeLicense(); else if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
   const NAV_KEYS = {
     ArrowUp: [0, -1], Numpad8: [0, -1], ArrowDown: [0, 1], Numpad2: [0, 1],
     ArrowLeft: [-1, 0], Numpad4: [-1, 0], ArrowRight: [1, 0], Numpad6: [1, 0],
@@ -1192,7 +1249,7 @@
     return false;
   }
   function overlayPad(k) {   // ジョイパッド: メニュー類が開いていれば処理して true
-    if (!(rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
+    if (!(licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
     if (k === 'rotR') nav.active = true;   // A で決定するときも、操作中として扱う
     if (k === 'hard' || k === 'up') navMove(0, -1);   // 十字キー上 / スティック上
     else if (k === 'soft') navMove(0, 1);
@@ -1229,8 +1286,9 @@
   addEventListener('keydown', e => {
     const k = e.code;
     if (goBarOpen && e.target && e.target.id === 'nameIn') return;   // 名前の入力中はゲームのキーを無効に
-    if (rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
-      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
+    if (e.target && e.target.id === 'licenseBtn' && (k === 'Enter' || k === 'NumpadEnter' || k === 'Space')) return;   // 著作権の表示は、Enter / Space で、ブラウザの標準の動きで開く
+    if (licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
+      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
       if (navKey(k)) e.preventDefault();
       return;
     }
@@ -1262,7 +1320,7 @@
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar');
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
