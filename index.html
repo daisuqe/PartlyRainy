@@ -81,6 +81,8 @@
   #rankPanel td { padding:3px 6px; border-bottom:1px solid #2c3550; }
   #rankPanel td:first-child { width:2.2em; color:#9fb4e8; text-align:right; }
   #rankPanel td:last-child { text-align:right; color:#fff; }
+  #rankPanel .list { max-height:min(52vh, 380px); overflow:auto; margin:8px 0; }   /* 100位まで出るので、一覧の中だけ動かす */
+  #rankPanel .list table { margin:0; }
   #rankPanel tr.me td { background:rgba(70,130,255,.28); }
   #rankPanel .msg { margin:8px 0; color:#ffd479; min-height:1.6em; }
   #rankPanel .rbtns { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
@@ -1309,14 +1311,14 @@
   };
   const rt = () => RT[isJa ? 'ja' : 'en'];
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  async function fetchTop(n = 10) {
+  async function fetchTop(n = 100) {   // 最大100位まで(同じ人は、サーバー側で1件にまとめられる)
     const r = await fetch(API + '/scores?limit=' + n, { cache: 'no-store' });
     if (!r.ok) throw new Error('http ' + r.status);
     return (await r.json()).scores || [];
   }
   function listHtml(scores, myRank) {
     if (!scores.length) return `<p>${rt().empty}</p>`;
-    return '<table>' + scores.map((r, i) => `<tr${myRank === i + 1 ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.score}</td></tr>`).join('') + '</table>';
+    return '<div class="list"><table>' + scores.slice(0, 100).map((r, i) => `<tr${myRank === i + 1 ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.score}</td></tr>`).join('') + '</table></div>';
   }
   function showRank() { rankOpen = true; rankEl.hidden = false; navReset(); }
   function closeRank() { rankOpen = false; rankEl.hidden = true; navApply(); }
@@ -1364,6 +1366,8 @@
     rankPanel.innerHTML = `<h2${rank ? '' : ' class="yk"'}>${rank ? T.rank(rank) : T.ranking}</h2>${listHtml(scores, rank)}
       <div class="rbtns"><button class="main" id="goTitle" type="button">${T.title}</button></div>`;
     $('goTitle').onclick = () => { closeRank(); goTitle(); };
+    const list = rankPanel.querySelector('.list'), me = rankPanel.querySelector('tr.me');
+    if (list && me) list.scrollTop = me.offsetTop - list.clientHeight / 2;   // 自分の行が真ん中あたりに来るように
   }
   async function sendScore() {
     const T = rt();

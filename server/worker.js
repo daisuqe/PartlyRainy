@@ -6,6 +6,17 @@
 const MAX_NAME = 12;               // 名前の最大文字数
 const MIN_INTERVAL_MS = 15000;     // 同じ端末からの登録間隔の下限
 const MAX_SCORE = 9999999;
+const MAX_LIST = 100;              // ランキングに出す最大の件数(100位まで)
+
+// 同じ人(名前が同じ。英字は大文字小文字を区別しない)は、いちばん高い得点の1件だけを出す
+const TOP_SQL = `
+  SELECT name, score, lines, level, created_at FROM (
+    SELECT name, score, lines, level, created_at,
+           ROW_NUMBER() OVER (PARTITION BY lower(name) ORDER BY score DESC, created_at ASC) AS rn
+    FROM scores
+  ) WHERE rn = 1
+  ORDER BY score DESC, created_at ASC
+  LIMIT ?`;
 
 function corsHeaders(request, env) {
   const allowed = (env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim()).filter(Boolean);
@@ -68,10 +79,8 @@ export default {
 
     // ---- 上位のスコア ----
     if (request.method === 'GET') {
-      const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
-      const { results } = await env.DB
-        .prepare('SELECT name, score, lines, level, created_at FROM scores ORDER BY score DESC, created_at ASC LIMIT ?')
-        .bind(limit).all();
+      const limit = Math.min(MAX_LIST, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
+      const { results } = await env.DB.prepare(TOP_SQL).bind(limit).all();
       return reply(request, env, { scores: results }, 200, { 'Cache-Control': 'public, max-age=10' });
     }
 
@@ -99,8 +108,11 @@ export default {
       await env.DB
         .prepare('INSERT INTO scores (name, score, lines, level, pieces, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?)')
         .bind(s.name, s.score, s.lines, s.level, s.pieces, now, ipHash).run();
-      const better = await env.DB.prepare('SELECT COUNT(*) AS c FROM scores WHERE score > ?').bind(s.score).first();
-      return reply(request, env, { ok: true, rank: (better ? better.c : 0) + 1, name: s.name });
+      // 順位は「同じ人は1人として数えたときの、その人のいちばん高い得点」の順位
+      const mine = await env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE lower(name) = lower(?)').bind(s.name).first();
+      const best = mine && mine.best != null ? mine.best : s.score;
+      const better = await env.DB.prepare('SELECT COUNT(*) AS c FROM (SELECT MAX(score) AS m FROM scores GROUP BY lower(name)) WHERE m > ?').bind(best).first();
+      return reply(request, env, { ok: true, rank: (better ? better.c : 0) + 1, name: s.name, best });
     }
 
     return reply(request, env, { error: 'method_not_allowed' }, 405);
