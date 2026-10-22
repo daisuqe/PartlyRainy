@@ -44,6 +44,9 @@
           padding:14px 44px; min-width:240px; cursor:pointer; }
   .tbtn { width:min(280px,80vw); padding-left:0; padding-right:0; }   /* タイトルのボタンは同じ幅 */
   .tbtn:hover { filter:brightness(1.25); }
+  #chooser { display:flex; flex-direction:column; align-items:center; gap:26px; }
+  #chooser[hidden] { display:none; }
+  #chooserText { font-size:26px; letter-spacing:.08em; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); }
   #howto { position:fixed; inset:0; z-index:35; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #howtoPanel { background:rgba(10,12,17,.88); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(560px,100%); max-height:100%;
                 overflow:auto; padding:18px 22px; font:14px/1.65 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0;
@@ -82,6 +85,9 @@
   #rankPanel td { padding:3px 6px; border-bottom:1px solid #2c3550; }
   #rankPanel td:first-child { width:2.2em; color:#9fb4e8; text-align:right; }
   #rankPanel td:last-child { text-align:right; color:#fff; }
+  #rankPanel .tabs { display:flex; gap:8px; margin:6px 0; }
+  #rankPanel .tabs button { flex:1 1 0; }
+  #rankPanel .tabs button.on { background:#2f6dff; border-color:#8fb2ff; }
   #rankPanel .list { max-height:min(52vh, 380px); overflow:auto; margin:8px 0; }   /* 100位まで出るので、一覧の中だけ動かす */
   #rankPanel .list table { margin:0; }
   #rankPanel tr.me td { background:rgba(70,130,255,.28); }
@@ -187,13 +193,18 @@
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
+  <div id="chooser" hidden>
+    <div id="chooserText">GIANT PIECES</div>
+    <button class="tbtn" id="giant10" type="button">10%</button>
+    <button class="tbtn" id="giant5" type="button">5%</button>
+  </div>
 </div>
 <div id="rank" hidden><div id="rankPanel"></div></div>
 <div id="howto" hidden>
   <div id="howtoPanel">
     <div data-lang="en">
     <h2 class="yk">How to play</h2>
-    <p>Stack the falling pieces and clear lines. Every 20th piece is a double-size piece.</p>
+    <p>Stack the falling pieces and clear lines. A double-size piece comes every 10 or 20 turns.</p>
 
     <div data-dev="pc">
     <h3>Keyboard</h3>
@@ -245,7 +256,7 @@
     </div>
     <div data-lang="ja">
     <h2 class="yk">How to play</h2>
-    <p>落ちてくるピースを積んでラインを消します。20個目ごとに倍サイズのピースが落ちてきます。</p>
+    <p>落ちてくるピースを積んでラインを消します。10ターン、または20ターンごとに倍サイズのピースが落ちてきます。</p>
 
     <div data-dev="pc">
     <h3>キーボード</h3>
@@ -323,8 +334,9 @@
   const COLS = 10, ROWS = 20, CELL = 30;
   // ランキングサーバー(server/README.md の手順で公開した Worker の URL。末尾に / を付けない)。空なら機能オフ。
   const SCORE_API = 'https://partly-rainy-scores.haradadaisuke.workers.dev';
-  const BIG_EVERY = 20;          // 20個目ごとに倍サイズ
-  const RAIN_EVERY = 20;         // 20個目ごとに雨(その手前の3個から雲が増える)
+  let BIG_EVERY = 20;            // 巨大ピースが出る間隔(START のあとに選ぶ: 10% = 10個ごと / 5% = 20個ごと)
+  let RAIN_EVERY = 20;           // 雨の間隔(巨大ピースと同じ。その手前の3個から雲が増える)
+  let giantPct = 5;              // 選んだ頻度(10 か 5)。ランキングはこの頻度ごとに別
   const board = document.getElementById('board'), ctx = board.getContext('2d');
   const nextCv = document.getElementById('next'), nctx = nextCv.getContext('2d');
 
@@ -763,7 +775,7 @@
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -1100,9 +1112,27 @@
     titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn'); navApply();
     reset(); layout(); ensureCtx(); bgmStart();
   }
+  function openChooser() {   // START を押したあと: 巨大ピースの頻度(10% / 5%)を選ぶ
+    chooserOpen = true;
+    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = 'none'; });
+    $('chooser').hidden = false;
+    nav.r = 0; nav.c = store.get('pr_giant', '10') === '5' ? 1 : 0;   // 前回選んだ方を最初に選んでおく
+    navApply();
+  }
+  function closeChooser() {
+    chooserOpen = false;
+    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = ''; });
+    $('chooser').hidden = true;
+    nav.r = nav.c = 0; navApply();
+  }
+  function beginGame(pct) {   // 10% = 10個ごとに巨大ピース(雨も10個ごと) / 5% = 20個ごと
+    giantPct = pct; BIG_EVERY = RAIN_EVERY = pct === 10 ? 10 : 20;
+    store.set('pr_giant', String(pct));
+    closeChooser(); startGame();
+  }
   function goTitle() {   // タイトル画面へ戻る(曲は止める。START で最初から)
     titleOpen = true; howtoOpen = false; howtoEl.hidden = true;
-    titleEl.hidden = false; document.body.classList.add('titleOn'); navReset();
+    titleEl.hidden = false; document.body.classList.add('titleOn'); closeChooser();
     hideGoBar();
     cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
@@ -1120,6 +1150,7 @@
       rows.push([$('restartBtn'), $('closeBtn')]);
       return rows;
     }
+    if (titleOpen && chooserOpen) return [[$('giant10'), $('giant5')]];
     if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), [$('howtoBtn')]];
     return [];
   }
@@ -1150,7 +1181,7 @@
     if (b && !b.disabled) b.click();
     setTimeout(navApply, 30);   // 押した結果で表示が作り直されても、選択の枠を付け直す
   }
-  function overlayBack() { if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); }
+  function overlayBack() { if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
   const NAV_KEYS = {
     ArrowUp: [0, -1], Numpad8: [0, -1], ArrowDown: [0, 1], Numpad2: [0, 1],
     ArrowLeft: [-1, 0], Numpad4: [-1, 0], ArrowRight: [1, 0], Numpad6: [1, 0],
@@ -1169,7 +1200,7 @@
     else if (k === 'right') navMove(1, 0);
     else if (k === 'rotR') navActivate();                       // A = 決定
     else if (k === 'rotL' || k === 'menu') overlayBack();       // B / Back = 戻る
-    else if (k === 'pause') { if (titleOpen && !rankOpen && !howtoOpen) startGame(); else overlayBack(); }   // Start
+    else if (k === 'pause') { if (titleOpen && !rankOpen && !howtoOpen) { if (chooserOpen) navActivate(); else openChooser(); } else overlayBack(); }   // Start
     return true;
   }
   // 日本語環境ならヘルプも日本語で表示
@@ -1179,7 +1210,9 @@
   $('menuPanel').classList.toggle('ja', isJa);
   $('restartBtn').textContent = 'Back To Title';
   $('closeBtn').textContent = 'Close';
-  $('startBtn').addEventListener('click', startGame);
+  $('startBtn').addEventListener('click', openChooser);
+  $('giant10').addEventListener('click', () => beginGame(10));
+  $('giant5').addEventListener('click', () => beginGame(5));
   $('howtoBtn').addEventListener('click', openHowto);
   $('howtoBack').addEventListener('click', closeHowto);
   howtoEl.addEventListener('click', e => { if (e.target === howtoEl) closeHowto(); });
@@ -1197,7 +1230,7 @@
     const k = e.code;
     if (goBarOpen && e.target && e.target.id === 'nameIn') return;   // 名前の入力中はゲームのキーを無効に
     if (rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
-      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || rankOpen || howtoOpen || menuOpen) { overlayBack(); e.preventDefault(); } return; }
+      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
       if (navKey(k)) e.preventDefault();
       return;
     }
@@ -1318,8 +1351,8 @@
   };
   const rt = () => RT[isJa ? 'ja' : 'en'];
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  async function fetchTop(n = 100) {   // 最大100位まで(同じ人は、サーバー側で1件にまとめられる)
-    const r = await fetch(API + '/scores?limit=' + n, { cache: 'no-store' });
+  async function fetchTop(mode, n = 100) {   // 最大100位まで(同じ人は、サーバー側で1件にまとめられる)。ランキングは頻度(mode = 10 か 5)ごとに別
+    const r = await fetch(API + '/scores?mode=' + mode + '&limit=' + n, { cache: 'no-store' });
     if (!r.ok) throw new Error('http ' + r.status);
     return (await r.json()).scores || [];
   }
@@ -1330,18 +1363,31 @@
   function showRank() { rankOpen = true; rankEl.hidden = false; navReset(); }
   function closeRank() { rankOpen = false; rankEl.hidden = true; navApply(); }
 
-  async function openRanking() {   // タイトル画面の RANKING ボタン
-    showRank();
-    rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2><p>${rt().loading}</p>`;
+  // ランキング画面。タブで 10% と 5% のランキングを切り替える。
+  //   mode: 表示する頻度 / myRank・myMode: 登録直後の自分の順位と頻度(その行を強調) / heading: 見出しのメッセージ / back: 下のボタンの動き
+  async function drawRanking({ mode, myRank = 0, myMode = 0, heading = '', back, first = false }) {
+    const T = rt();
+    if (first) showRank();
+    const head = heading ? `<h2>${heading}</h2>` : `<h2 class="yk">${T.ranking}</h2>`;
+    const tabs = `<div class="tabs"><button type="button" data-m="10" class="${mode === 10 ? 'on' : ''}">10%</button><button type="button" data-m="5" class="${mode === 5 ? 'on' : ''}">5%</button></div>`;
+    const foot = extra => `<div class="rbtns">${extra || ''}<button class="main" id="rankClose" type="button">${T.back}</button></div>`;
+    const wire = () => {
+      rankPanel.querySelectorAll('.tabs button').forEach(b => { b.onclick = () => drawRanking({ mode: Number(b.dataset.m), myRank, myMode, heading, back }); });
+      $('rankClose').onclick = back;
+    };
+    rankPanel.innerHTML = head + tabs + `<p>${T.loading}</p>` + foot(); wire();
     try {
-      const scores = await fetchTop();
-      rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2>${listHtml(scores)}<div class="rbtns"><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
+      const scores = await fetchTop(mode);
+      rankPanel.innerHTML = head + tabs + listHtml(scores, mode === myMode ? myRank : 0) + foot(); wire();
+      const list = rankPanel.querySelector('.list'), me = rankPanel.querySelector('tr.me');
+      if (list && me) list.scrollTop = me.offsetTop - list.clientHeight / 2;   // 自分の行が真ん中あたりに来るように
     } catch (e) {
-      rankPanel.innerHTML = `<h2 class="yk">${rt().ranking}</h2><p class="msg">${rt().fail}</p><div class="rbtns"><button id="rankRetry" type="button">${rt().retry}</button><button class="main" id="rankClose" type="button">${rt().back}</button></div>`;
-      $('rankRetry').onclick = openRanking;
+      rankPanel.innerHTML = head + tabs + `<p class="msg">${T.fail}</p>` + foot(`<button id="rankRetry" type="button">${T.retry}</button>`); wire();
+      $('rankRetry').onclick = () => drawRanking({ mode, myRank, myMode, heading, back });
     }
-    $('rankClose').onclick = closeRank;
   }
+  const lastMode = () => (store.get('pr_giant', '10') === '5' ? 5 : 10);
+  function openRanking() { drawRanking({ mode: lastMode(), back: closeRank, first: true }); }   // タイトル画面の RANKING ボタン
 
   // ---- ゲームオーバー: メイン画面の下に「名前の入力欄 / 登録 / Exit」だけを出す ----
   const goBar = $('gobar'), goInput = $('nameIn'), goMsg = $('goMsg'), goSubmit = $('goSubmit'), goExit = $('goExit');
@@ -1357,24 +1403,16 @@
   function openGameOver() {
     if (!over || !API || titleOpen || rankOpen || menuOpen || goBarOpen) return;
     const T = rt();
-    goData = { score, lines, level, pieces: count - 1 };
+    goData = { score, lines, level, pieces: count - 1, mode: giantPct };
     let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
     goInput.value = lastName || memName;   // 前回の名前を、最初から入れておく goInput.placeholder = T.name;
     goSubmit.textContent = T.submit; goSubmit.disabled = false; goExit.textContent = 'Exit'; goMsg.textContent = '';
     goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout();
     if (!touchMode) goInput.focus();   // スマホでは、勝手にキーボードを出さない
   }
-  async function showResult(rank) {   // 登録のあと: 順位と上位の一覧
+  function showResult(rank) {   // 登録のあと: 順位と、遊んだ頻度の上位の一覧(タブで別の頻度も見られる)
     const T = rt();
-    showRank();
-    rankPanel.innerHTML = `<h2>${T.loading}</h2>`;
-    let scores = [];
-    try { scores = await fetchTop(); } catch (e) {}
-    rankPanel.innerHTML = `<h2${rank ? '' : ' class="yk"'}>${rank ? T.rank(rank) : T.ranking}</h2>${listHtml(scores, rank)}
-      <div class="rbtns"><button class="main" id="goTitle" type="button">${T.title}</button></div>`;
-    $('goTitle').onclick = () => { closeRank(); goTitle(); };
-    const list = rankPanel.querySelector('.list'), me = rankPanel.querySelector('tr.me');
-    if (list && me) list.scrollTop = me.offsetTop - list.clientHeight / 2;   // 自分の行が真ん中あたりに来るように
+    drawRanking({ mode: giantPct, myRank: rank, myMode: giantPct, heading: rank ? T.rank(rank) : '', back: () => { closeRank(); goTitle(); }, first: true });
   }
   async function sendScore() {
     const T = rt();
