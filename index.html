@@ -13,6 +13,7 @@
   body { background:var(--bg); color:var(--fg); font-family:"Yodaka",system-ui,sans-serif; text-transform:uppercase;
          -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   body.touch { touch-action:none; }
+  img, canvas { -webkit-user-drag:none; user-drag:none; -webkit-touch-callout:none; }   /* 画像をドラッグ・長押しで保存させない */
   #bg { position:fixed; left:0; top:0; width:100%; height:100%; z-index:-1; }
   #wrap { position:absolute; left:50%; top:0; width:max-content; display:flex; gap:20px; padding:16px; align-items:flex-start; transform-origin:top center; }
   #board { background:#0a0c11; border:2px solid #fff; display:block; }
@@ -181,7 +182,7 @@
   </div>
 </div>
 <div id="title">
-  <img id="titleImg" src="title.png" alt="Partly Rainy">
+  <img id="titleImg" src="title.png" alt="Partly Rainy" draggable="false">
   <div id="titleText" hidden>Partly<br>Rainy</div>
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
@@ -1184,6 +1185,14 @@
   $('howtoBtn').addEventListener('click', openHowto);
   $('howtoBack').addEventListener('click', closeHowto);
   howtoEl.addEventListener('click', e => { if (e.target === howtoEl) closeHowto(); });
+
+  // ---- ゲームの画面の上では、右クリック(長押し)のメニューを出さない。名前の入力欄だけは例外 ----
+  addEventListener('contextmenu', e => {
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea')) return;
+    e.preventDefault();
+  });
+  addEventListener('dragstart', e => { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
 
   // ---- キーボード ----
   addEventListener('keydown', e => {
