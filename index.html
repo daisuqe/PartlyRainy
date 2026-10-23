@@ -1424,11 +1424,23 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       Numpad2: 'soft', ArrowDown: 'soft', Numpad0: 'hard', Space: 'hard',
       Numpad7: 'swap', Numpad8: 'swap', Numpad9: 'swap', KeyC: 'swap',
     };
-    if (map[k]) { act(map[k]); e.preventDefault(); }
+    const a = map[k];
+    if (!a) return;
+    e.preventDefault();
+    if (REPEAT[a]) {   // 左右・下は、OSのキーリピート(最初の待ちが長い)に頼らず、自前で連続させる
+      if (e.repeat || keyHold[k]) return;
+      act(a);
+      const h = keyHold[k] = {};
+      h.t1 = setTimeout(() => { h.t2 = setInterval(() => act(a), REPEAT[a]); }, DAS);
+    } else if (!e.repeat) act(a);   // 回転・ハードドロップなどは、押しっぱなしで連続させない
   });
+  const keyHold = {};
+  function keyStop(k) { const h = keyHold[k]; if (!h) return; clearTimeout(h.t1); clearInterval(h.t2); delete keyHold[k]; }
+  addEventListener('keyup', e => keyStop(e.code));
+  addEventListener('blur', () => Object.keys(keyHold).forEach(keyStop));
 
   // ---- 画面ボタン(長押しで連続) ----
-  const REPEAT = { left: 60, right: 60, soft: 45 };
+  const REPEAT = { left: 60, right: 60, soft: 45 }, DAS = 120;   // DAS: 押してから連続で動き出すまでの待ち(ミリ秒)
   padEl.querySelectorAll('button').forEach(btn => {
     let t1 = null, t2 = null;
     const stop = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = null; btn.classList.remove('down'); };
@@ -1436,7 +1448,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       e.preventDefault();
       const a = btn.dataset.act;
       btn.classList.add('down'); act(a);
-      if (REPEAT[a]) t1 = setTimeout(() => { t2 = setInterval(() => act(a), REPEAT[a]); }, 170);
+      if (REPEAT[a]) t1 = setTimeout(() => { t2 = setInterval(() => act(a), REPEAT[a]); }, DAS);
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
     btn.addEventListener('contextmenu', e => e.preventDefault());
@@ -1507,7 +1519,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       const was = padPrev[k]; padPrev[k] = st[k];
       if (!st[k]) continue;
       let fire = false;
-      if (!was) { fire = true; padNext[k] = t + 170; }
+      if (!was) { fire = true; padNext[k] = t + DAS; }
       else if (t >= padNext[k] && (inOverlay ? NAV_REPEAT.has(k) : REPEAT[k])) { fire = true; padNext[k] = t + (inOverlay ? 150 : REPEAT[k]); }
       if (!fire) continue;
       if (overlayPad(k)) continue;   // メニュー類が開いている間は、そちらを操作
