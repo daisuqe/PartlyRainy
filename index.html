@@ -24,7 +24,7 @@
   img, canvas { -webkit-user-drag:none; user-drag:none; -webkit-touch-callout:none; }   /* 画像をドラッグ・長押しで保存させない */
   #bg { position:fixed; left:0; top:0; width:100%; height:100%; z-index:-1; }
   #wrap { position:absolute; left:50%; top:0; width:max-content; display:flex; gap:20px; padding:16px; align-items:flex-start; transform-origin:top center; }
-  #fx { position:absolute; left:0; top:0; z-index:5; pointer-events:none; }
+  #fx { position:fixed; left:0; top:0; width:100%; height:100%; z-index:5; pointer-events:none; }   /* 画面に固定: はみ出して、画面が広がったりしないように */
   #board { background:#0a0c11; border:2px solid #fff; display:block; }
   #side { width:240px; display:flex; flex-direction:column; gap:0; }
   .box { padding:1px 12px; }
@@ -220,7 +220,6 @@
 <canvas id="bg"></canvas>
 <div id="wrap">
   <canvas id="board" width="300" height="600"></canvas>
-  <canvas id="fx" width="1100" height="1600"></canvas>   <!-- 消去の粒を描く: 盤面の外にも飛び出せるよう、盤面より大きい -->
   <div id="gobar" hidden>
     <input id="nameIn" maxlength="12" autocomplete="off">
     <div id="goRow"><button class="main" id="goSubmit" type="button"></button><button id="goExit" type="button">Exit</button></div>
@@ -380,6 +379,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     <button class="back" id="howtoBack" type="button">Back</button>
   </div>
 </div>
+<canvas id="fx"></canvas>   <!-- 消去の粒を描く: 画面全体の大きさ(盤面の外にも飛び出せる) -->
 <button id="menuBtn" type="button">MENU</button>
 <div id="menu" hidden>
   <div id="menuPanel">
@@ -552,7 +552,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- ライン消去の演出(0.7〜1秒、ゲームは止まる): 白く点滅 → 粒になって弾ける → 行が消える ----
   let clearing = null, parts = [], fxLast = 0;
-  const FXM = 400, fxc = document.getElementById('fx'), fx = fxc.getContext('2d');   // 盤面の外まで、FXM px の余白
+  const fxc = document.getElementById('fx'), fx = fxc.getContext('2d');
   function clearFx() { fx.clearRect(0, 0, fxc.width, fxc.height); }
   function startClear(rows) {
     const now = performance.now();
@@ -573,8 +573,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const c = clearing, n = c.rows.length, p = Math.min(1, (now - c.t0) / c.dur);
     const dt = Math.min(.05, (now - fxLast) / 1000); fxLast = now;
     const BURST = .42;
-    fxc.style.left = (board.offsetLeft + 2 - FXM) + 'px'; fxc.style.top = (board.offsetTop + 2 - FXM) + 'px';
+    if (fxc.width !== vw() || fxc.height !== vh()) { fxc.width = vw(); fxc.height = vh(); }
     clearFx();
+    const br = board.getBoundingClientRect(), k = viewScale;   // 盤面の座標 → 画面の座標
     if (!c.burst && p >= BURST) {   // 行のブロックを、色つきの粒にして飛ばす
       c.burst = true;
       const cx = COLS * CELL / 2, cy = (c.rows.reduce((a, b) => a + b, 0) / n + .5) * CELL;   // 消えるラインの中心
@@ -596,7 +597,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       for (const pt of parts) {
         pt.age += dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt;
         if (pt.age >= pt.life) continue;
-        fx.fillRect(pt.x + FXM - pt.s / 2, pt.y + FXM - pt.s / 2, pt.s, pt.s);
+        fx.fillRect(br.left + (2 + pt.x - pt.s / 2) * k, br.top + (2 + pt.y - pt.s / 2) * k, pt.s * k, pt.s * k);
       }
     }
     // 得点(+100 など)が上へ消えていく
@@ -737,7 +738,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- 背景: 盤面の外(ウィンドウ全体)に描く晴れの草原 ----
   const bgCv = document.getElementById('bg'), bctx = bgCv.getContext('2d');
-  const vw = () => document.documentElement.clientWidth, vh = () => document.documentElement.clientHeight;
+  const vw = () => document.documentElement.clientWidth || window.innerWidth || 0, vh = () => document.documentElement.clientHeight || window.innerHeight || 0;   // アプリ内ブラウザ(Xなど)では、読み込み直後に 0 になることがある
   const fitBg = () => { bgCv.width = vw(); bgCv.height = vh(); };
   fitBg(); addEventListener('resize', fitBg);
   let seed = (Date.now() % 2147483646) + 1;   // 読み込むたびに雲の形が変わる
@@ -1199,6 +1200,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   let viewScale = 1;
   function layout() {
     const VW = vw(), VH = vh();
+    if (VW < 50 || VH < 50) { setTimeout(layout, 100); return; }   // 画面の大きさがまだ正しく取れていないときは、あとでやり直す
     const buttons = touchMode && gMode === 'buttons';
     const land = buttons && VW > VH;   // 横持ち: ボタンを左右に配置
     document.body.classList.toggle('land', land);
@@ -1207,7 +1209,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const w = wrapEl.offsetWidth, h = wrapEl.offsetHeight;
     const topR = land ? 36 : touchMode ? 44 : 84, padH = (buttons && !land) ? padEl.offsetHeight : 0;
     const availH = VH - padH - topR, availW = VW - (land ? 2 * 214 : 0);
-    viewScale = Math.min(1.1, availW / w, availH / h);   // 画面に余裕があれば全体を1.1倍で表示
+    viewScale = Math.max(.1, Math.min(1.1, availW / w, availH / h));   // 画面に余裕があれば全体を1.1倍で表示
     wrapEl.style.top = Math.max(topR, topR + (availH - h * viewScale) / 2) + 'px';
     wrapEl.style.transform = `translateX(-50%) scale(${viewScale})`;
     placeGoBar();
@@ -1219,6 +1221,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     layout();
   }
   addEventListener('resize', layout);
+  addEventListener('pageshow', layout); document.addEventListener('visibilitychange', () => { if (!document.hidden) layout(); });
+  if (window.ResizeObserver) new ResizeObserver(() => layout()).observe(document.documentElement);
   if (window.visualViewport) visualViewport.addEventListener('resize', layout);
   addEventListener('orientationchange', () => setTimeout(layout, 200));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
@@ -1246,7 +1250,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   function startGame() {
     if (!titleOpen) return;
     titleOpen = false; titleEl.hidden = true; document.body.classList.remove('titleOn'); navApply();
-    reset(); layout(); ensureCtx(); bgmStart();
+    reset(); layout(); [150, 600, 1500].forEach(t => setTimeout(layout, t));   // 画面の大きさが、あとから変わっても、盤面が見えるように
+    try { ensureCtx(); bgmStart(); } catch (e) {}   // 音のエラーで、ゲームの開始を止めない
   }
   function openChooser() {   // START を押したあと: 巨大ピースの頻度(10% / 5%)を選ぶ
     chooserOpen = true;
