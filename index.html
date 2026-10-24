@@ -57,6 +57,8 @@
           padding:14px 44px; min-width:240px; cursor:pointer; }
   .tbtn { width:min(280px,80vw); padding-left:0; padding-right:0; }   /* タイトルのボタンは同じ幅 */
   .tbtn:hover { filter:brightness(1.25); }
+  .tbtn:disabled { filter:grayscale(1) brightness(.65); opacity:.6; cursor:not-allowed; }   /* ランキングを休止している間 */
+  #rankNote { margin-top:-12px; max-width:min(320px,86vw); text-align:center; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6); font:13px/1.5 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; }
   #chooser { display:flex; flex-direction:column; align-items:center; gap:26px; }
   #chooser[hidden] { display:none; }
   #chooserText { font-size:26px; letter-spacing:.08em; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); }
@@ -243,6 +245,7 @@
   <button id="appsBtn" type="button" aria-label="App list"><canvas id="appsIcon" width="16" height="16"></canvas></button>
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
+  <div id="rankNote" hidden></div>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
   <button id="licenseBtn" type="button">&copy; 2026 daisuqe. All rights reserved.</button>
   <div id="chooser" hidden>
@@ -895,7 +898,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       if (!hit(cur.m, cur.x, cur.y + 1)) cur.y++; else lock();
     }
     draw(t);
-    if (over && !overShown) { overShown = true; bgmGameOver(); if (API && score > 0 && !titleOpen) setTimeout(openGameOver, 900); }
+    if (over && !overShown) { overShown = true; bgmGameOver(); if (API && !rankDown && score > 0 && !titleOpen) setTimeout(openGameOver, 900); }
     requestAnimationFrame(loop);
   }
 
@@ -1259,14 +1262,14 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   function openChooser() {   // START を押したあと: 巨大ピースの頻度(10% / 5%)を選ぶ
     chooserOpen = true;
-    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = 'none'; });
+    ['startBtn', 'rankBtn', 'rankNote', 'howtoBtn'].forEach(id => { $(id).style.display = 'none'; });
     $('chooser').hidden = false;
     nav.r = 0; nav.c = store.get('pr_giant', '10') === '5' ? 1 : 0;   // 前回選んだ方を最初に選んでおく
     navApply();
   }
   function closeChooser() {
     chooserOpen = false;
-    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = ''; });
+    ['startBtn', 'rankBtn', 'rankNote', 'howtoBtn'].forEach(id => { $(id).style.display = ''; });
     $('chooser').hidden = true;
     nav.r = nav.c = 0; navApply();
   }
@@ -1336,7 +1339,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       return rows;
     }
     if (titleOpen && chooserOpen) return [[$('giant10'), $('giant5')]];
-    if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), [$('howtoBtn')]];
+    if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden || $('rankBtn').disabled ? [] : [[$('rankBtn')]]), [$('howtoBtn')]];
     return [];
   }
   function navApply() {   // 選択中の項目に枠を付ける
@@ -1536,6 +1539,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ================= ランキング(スコア登録) =================
   const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
+  // ランキングのサーバー(無料枠)が使えない間は、RANKING ボタンをグレーにして、スコア登録もしない。この日時を過ぎれば、自動で元に戻る。
+  const RANK_OPEN_AT = Date.parse('2026-10-25T10:00:00+09:00');
+  const rankDown = !new URLSearchParams(location.search).get('api') && Date.now() < RANK_OPEN_AT;
   const rankEl = $('rank'), rankPanel = $('rankPanel');
   const RT = {
     en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
@@ -1599,7 +1605,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     goBarOpen = false; goBar.hidden = true; document.body.classList.remove('gobar'); layout();
   }
   function openGameOver() {
-    if (!over || !API || titleOpen || rankOpen || menuOpen || goBarOpen) return;
+    if (!over || !API || rankDown || titleOpen || rankOpen || menuOpen || goBarOpen) return;
     const T = rt();
     goData = { score, lines, level, pieces: count - 1, mode: giantPct };
     let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
@@ -1638,6 +1644,11 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   if (API) {   // サーバーが設定されているときだけ RANKING ボタンを出す
     $('rankBtn').hidden = false;
+    if (rankDown) {
+      $('rankBtn').disabled = true;
+      $('rankNote').textContent = isJa ? '日本時間 10/25 10:00 まで\nランキングにアクセスできません' : 'The ranking is unavailable\nuntil Oct 25, 10:00 JST.';
+      $('rankNote').style.whiteSpace = 'pre-line'; $('rankNote').hidden = false;
+    }
     $('rankBtn').addEventListener('click', openRanking);
     rankEl.addEventListener('click', e => { if (e.target === rankEl) closeRank(); });
   }

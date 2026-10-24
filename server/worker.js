@@ -21,6 +21,11 @@ const TOP_SQL = `
   ORDER BY score DESC, created_at ASC
   LIMIT ?`;
 
+// 一覧はしばらく使い回す(同じ場所の Worker の中に覚えておく)。D1 の「1日の読み取り」の無料枠を使い切らないため。
+// 読み込みに失敗したときは、古い一覧があればそれを返す。
+const LIST_TTL_MS = 60000;
+const listCache = new Map();   // "mode:limit" -> { t, body }
+
 function corsHeaders(request, env) {
   const allowed = (env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim()).filter(Boolean);
   const origin = request.headers.get('Origin') || '';
@@ -74,6 +79,12 @@ function validate(b) {
 
 export default {
   async fetch(request, env) {
+    try { return await handle(request, env); }
+    catch (e) { return reply(request, env, { error: 'unavailable' }, 503, { 'Cache-Control': 'no-store' }); }   // D1 の上限や障害でも、CORS つきで返す(ゲーム側が「つながらない」と出せる)
+  },
+};
+
+async function handle(request, env) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -85,8 +96,17 @@ export default {
     if (request.method === 'GET') {
       const limit = Math.min(MAX_LIST, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
       const mode = parseMode(url.searchParams.get('mode'));
-      const { results } = await env.DB.prepare(TOP_SQL).bind(mode, limit).all();
-      return reply(request, env, { mode, scores: results }, 200, { 'Cache-Control': 'public, max-age=10' });
+      const key = mode + ':' + limit, hit = listCache.get(key), now = Date.now();
+      if (hit && now - hit.t < LIST_TTL_MS) return reply(request, env, hit.body, 200, { 'Cache-Control': 'public, max-age=30' });
+      try {
+        const { results } = await env.DB.prepare(TOP_SQL).bind(mode, limit).all();
+        const body = { mode, scores: results };
+        listCache.set(key, { t: now, body });
+        return reply(request, env, body, 200, { 'Cache-Control': 'public, max-age=30' });
+      } catch (e) {
+        if (hit) return reply(request, env, hit.body, 200, { 'Cache-Control': 'no-store' });   // 古い一覧でも、ないよりまし
+        return reply(request, env, { error: 'unavailable' }, 503, { 'Cache-Control': 'no-store' });
+      }
     }
 
     // ---- 登録 ----
@@ -109,17 +129,23 @@ export default {
         return reply(request, env, { error: 'too_fast' }, 429);
       }
 
+      // 同じ人(名前が同じ)は1件だけ残す: いまの最高点より高いときだけ、古い行を消して、新しく入れる
       const s = v.value;
-      await env.DB
-        .prepare('INSERT INTO scores (name, score, lines, level, pieces, mode, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(s.name, s.score, s.lines, s.level, s.pieces, s.mode, now, ipHash).run();
-      // 順位は「同じ人は1人として数えたときの、その人のいちばん高い得点」の順位
       const mine = await env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE mode = ? AND lower(name) = lower(?)').bind(s.mode, s.name).first();
-      const best = mine && mine.best != null ? mine.best : s.score;
-      const better = await env.DB.prepare('SELECT COUNT(*) AS c FROM (SELECT MAX(score) AS m FROM scores WHERE mode = ? GROUP BY lower(name)) WHERE m > ?').bind(s.mode, best).first();
+      const old = mine && mine.best != null ? mine.best : null;
+      let best = s.score;
+      if (old === null || s.score > old) {
+        await env.DB.batch([
+          env.DB.prepare('DELETE FROM scores WHERE mode = ? AND lower(name) = lower(?)').bind(s.mode, s.name),
+          env.DB.prepare('INSERT INTO scores (name, score, lines, level, pieces, mode, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(s.name, s.score, s.lines, s.level, s.pieces, s.mode, now, ipHash),
+        ]);
+        listCache.clear();
+      } else best = old;
+      // 順位は「その人の最高点より高い人の数 + 1」(1人1件なので、行を数えればよい)
+      const better = await env.DB.prepare('SELECT COUNT(*) AS c FROM scores WHERE mode = ? AND score > ?').bind(s.mode, best).first();
       return reply(request, env, { ok: true, rank: (better ? better.c : 0) + 1, name: s.name, best, mode: s.mode });
     }
 
     return reply(request, env, { error: 'method_not_allowed' }, 405);
-  },
-};
+}
