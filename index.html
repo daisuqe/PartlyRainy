@@ -141,6 +141,16 @@
   #configPanel .note.warn { color:#ffb86b; }
   #configPanel button.close { display:block; margin:18px 0 0 auto; font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
                                color:#fff; background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:8px 22px; cursor:pointer; }
+  /* ---- ダイアログの右上の × ボタン(Back To Title / Close と同じ動き) ---- */
+  .hrow { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .hrow h2 { flex:1; min-width:0; }
+  #rankPanel button.x, #configPanel button.x, #howtoPanel button.x, #menuPanel button.x {
+        flex:none; display:flex; align-items:center; justify-content:center; width:32px; height:32px; margin:0; padding:.1em 0 0;
+        font:400 20px/1 'Yodaka',system-ui,sans-serif !important; text-transform:none; letter-spacing:0;   /* 字の中心は、文字の枠の中心より .05em 上なので、.1em 下げて、四角の中心にそろえる */
+        color:#fff; background:rgba(255,255,255,.08); border:1px solid #6b7894; border-radius:6px; cursor:pointer; }
+  #howtoPanel button.x { float:right; margin:0 0 6px 10px; }   /* 見出しの右上に、文章が回り込む */
+  #menuPanel button.x { margin:0 0 -14px auto; }   /* 右上に置き、最初の見出しは、その左側に入る */
+  #rankPanel button.x:hover, #configPanel button.x:hover, #howtoPanel button.x:hover, #menuPanel button.x:hover { background:rgba(255,255,255,.2); }
   /* ---- ランキング / スコア登録 ---- */
   #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
@@ -199,12 +209,12 @@
   #menuPanel.ja, #menuPanel.ja button { font-family:system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; }
   #menuPanel.ja { font-size:14px; line-height:1.65; }
   #menuPanel .seg button[data-music], #menuPanel .seg button[data-sfx], #menuPanel #menuFoot button {
-    font-family:'Yodaka',system-ui,sans-serif; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }   /* ON / OFF / BACK TO TITLE / CLOSE は大文字 */
+    font-family:'Yodaka',system-ui,sans-serif; font-size:15.6px; letter-spacing:.06em; text-transform:uppercase; }   /* ON / OFF / BACK TO TITLE / CLOSE は大文字 */
   .row { display:flex; gap:12px; }
   .row b { flex:0 0 38%; font-weight:400; color:#fff; }
   .note { color:#9aa3b5; margin-top:4px; }
   .seg { display:flex; gap:8px; }
-  .seg button, #menuFoot button { font:inherit; font-size:13px; letter-spacing:.06em; color:#d3d8e0; background:rgba(255,255,255,.08);
+  .seg button, #menuFoot button { font:inherit; font-size:15.6px; letter-spacing:.06em; color:#d3d8e0; background:rgba(255,255,255,.08);
           border:1px solid #4a5570; border-radius:6px; padding:9px 12px; cursor:pointer; }
   .seg button { flex:1; }
   .seg button.on { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
@@ -283,7 +293,7 @@
 </div>
 <div id="config" hidden>
   <div id="configPanel" role="dialog" aria-modal="true" aria-labelledby="configTitle">
-    <h2 class="yk" id="configTitle">Config</h2>
+    <div class="hrow"><h2 class="yk" id="configTitle">Config</h2><button class="x" id="configX" type="button" aria-label="Close">&times;</button></div>
     <div id="configBody"></div>
     <button class="close" id="configClose" type="button">Back To Title</button>
   </div>
@@ -306,6 +316,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 </div>
 <div id="howto" hidden>
   <div id="howtoPanel">
+    <button class="x" id="howtoX" type="button" aria-label="Close">&times;</button>
     <div data-lang="en">
     <h2 class="yk">How to play</h2>
     <p>Stack the falling pieces and clear lines. A double-size piece comes every 10 or 20 turns.<span data-dev="pc"><br>On a smartphone, you can play with flick controls.</span><span data-dev="touch"><br>On a PC, you can play with a controller or keyboard.</span></p>
@@ -417,6 +428,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 <button id="menuBtn" type="button">MENU</button>
 <div id="menu" hidden>
   <div id="menuPanel">
+    <button class="x" id="menuX" type="button" aria-label="Close">&times;</button>
     <div id="menuBody"></div>
     <div id="menuFoot"><button id="restartBtn" type="button">Back To Title</button><button id="closeBtn" type="button">CLOSE</button></div>
   </div>
@@ -1216,6 +1228,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('closeBtn').addEventListener('click', closeMenu);
+  $('menuX').addEventListener('click', closeMenu);
   $('restartBtn').addEventListener('click', () => { closeMenu(); goTitle(); });   // 「Back To Title」
   menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
   menuBody.addEventListener('click', e => {
@@ -1368,7 +1381,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (leaveOpen) return [[$('leaveYes'), $('leaveNo')]];
     if (configOpen) { const r = [...$('configBody').querySelectorAll('[data-row]')].map(x => [...x.querySelectorAll('button')]).filter(x => x.length); r.push([$('configClose')]); return r; }
     if (licenseOpen) return [[$('licenseClose')]];
-    if (rankOpen) { const b = [...rankPanel.querySelectorAll('button')]; return b.length ? [b] : []; }
+    if (rankOpen) { const b = [...rankPanel.querySelectorAll('button:not(.x)')]; return b.length ? [b] : []; }
     if (howtoOpen) return [[$('howtoBack')]];
     if (menuOpen) {
       const rows = [...menuBody.querySelectorAll('.seg')].map(seg => [...seg.querySelectorAll('button')]).filter(r => r.length);
@@ -1440,6 +1453,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   $('giant5').addEventListener('click', () => beginGame(5));
   $('howtoBtn').addEventListener('click', openHowto);
   $('howtoBack').addEventListener('click', closeHowto);
+  $('howtoX').addEventListener('click', closeHowto);
   howtoEl.addEventListener('click', e => { if (e.target === howtoEl) closeHowto(); });
 
   // ---- ゲームの画面の上では、右クリック(長押し)のメニューを出さない。名前の入力欄だけは例外 ----
@@ -1453,47 +1467,48 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   // ================= CONFIG: 音・キーボード・コントローラの設定 =================
   const ACTION_LIST = ['left', 'right', 'rotL', 'rotR', 'soft', 'hard', 'swap'];
   const PAD_ACTIONS = [...ACTION_LIST, 'pause', 'menu'];
-  // 初期設定。1つの操作に、キー(ボタン)を2つまで割り当てられる
-  const KEY_DEF = { left: ['Numpad4', 'ArrowLeft'], right: ['Numpad6', 'ArrowRight'], rotL: ['Numpad1', 'KeyZ'], rotR: ['Numpad3', 'KeyX'],
-                    soft: ['Numpad2', 'ArrowDown'], hard: ['Numpad0', 'Space'], swap: ['Numpad7', 'KeyC'] };
-  const KEY_ALIAS = { Numpad5: 'rotL', ArrowUp: 'rotR', Numpad8: 'swap', Numpad9: 'swap' };   // 初期設定のおまけのキー(ほかの操作に割り当てたら、そちらが優先)
-  const PAD_DEF = { left: [14, null], right: [15, null], soft: [13, null], hard: [12, 7], rotR: [0, null], rotL: [1, 2], swap: [3, 4], pause: [9, null], menu: [8, null] };
-  const PAD_ALIAS = { 5: 'swap' };
+  // 初期設定。1つの操作に、2つの枠がある。1つの枠には、初期設定のときだけ、複数のキー(ボタン)が入っていることがある(例: NUM 7,8,9)。
+  // 枠を自分で設定し直すと、その枠は、選んだキー1つだけになる。
+  const KEY_DEF = { left: [['Numpad4'], ['ArrowLeft']], right: [['Numpad6'], ['ArrowRight']], rotL: [['Numpad1', 'Numpad5'], ['KeyZ']], rotR: [['Numpad3'], ['KeyX', 'ArrowUp']],
+                    soft: [['Numpad2'], ['ArrowDown']], hard: [['Numpad0'], ['Space']], swap: [['Numpad7', 'Numpad8', 'Numpad9'], ['KeyC']] };
+  const PAD_DEF = { left: [[14], []], right: [[15], []], soft: [[13], []], hard: [[12], [7]], rotR: [[0], []], rotL: [[1], [2]], swap: [[3], [4, 5]], pause: [[9], []], menu: [[8], []] };
   const copyDef = d => JSON.parse(JSON.stringify(d));
   function loadBind(key, def, ok) {
     try {
       const v = JSON.parse(store.get(key, 'null'));
-      if (v && Object.keys(def).every(a => Array.isArray(v[a]) && v[a].length === 2 && v[a].every(x => x === null || ok(x)))) return v;
+      if (v && Object.keys(def).every(a => Array.isArray(v[a]) && v[a].length === 2 && v[a].every(l => Array.isArray(l) && l.every(ok)))) return v;
     } catch (e) {}
     return copyDef(def);
   }
-  const keyBind = loadBind('pr_keys', KEY_DEF, x => typeof x === 'string');
-  const padBind = loadBind('pr_pad', PAD_DEF, x => Number.isInteger(x) && x >= 0 && x < 32);
+  const keyBind = loadBind('pr_keys2', KEY_DEF, x => typeof x === 'string');
+  const padBind = loadBind('pr_pad2', PAD_DEF, x => Number.isInteger(x) && x >= 0 && x < 32);
   let keyMap = {}, padMap = {};   // キー(ボタン) → 操作
   function buildMaps() {
     keyMap = {}; padMap = {};
-    for (const a of ACTION_LIST) keyBind[a].forEach(c => { if (c) keyMap[c] = a; });
-    for (const c in KEY_ALIAS) if (!keyMap[c]) keyMap[c] = KEY_ALIAS[c];
-    for (const a of PAD_ACTIONS) padBind[a].forEach(i => { if (i !== null) padMap[i] = a; });
-    for (const i in PAD_ALIAS) if (!(i in padMap)) padMap[i] = PAD_ALIAS[i];
+    for (const a of ACTION_LIST) keyBind[a].forEach(l => l.forEach(c => { keyMap[c] = a; }));
+    for (const a of PAD_ACTIONS) padBind[a].forEach(l => l.forEach(i => { padMap[i] = a; }));
   }
   buildMaps();
-  function saveBind() { store.set('pr_keys', JSON.stringify(keyBind)); store.set('pr_pad', JSON.stringify(padBind)); buildMaps(); }
+  function saveBind() { store.set('pr_keys2', JSON.stringify(keyBind)); store.set('pr_pad2', JSON.stringify(padBind)); buildMaps(); }
 
   const KEY_NAMES = { ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ArrowUp: 'UP', ArrowDown: 'DOWN', Space: 'SPACE', ShiftLeft: 'L-SHIFT', ShiftRight: 'R-SHIFT',
     ControlLeft: 'L-CTRL', ControlRight: 'R-CTRL', AltLeft: 'L-ALT', AltRight: 'R-ALT', NumpadAdd: 'NUM +', NumpadSubtract: 'NUM -', NumpadMultiply: 'NUM *',
     NumpadDivide: 'NUM /', NumpadDecimal: 'NUM .', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']',
     Minus: '-', Equal: '=', Backquote: '`', Backslash: 'BACKSLASH', Backspace: 'BKSP', CapsLock: 'CAPS', PageUp: 'PGUP', PageDown: 'PGDN', Insert: 'INS', Delete: 'DEL' };
   function keyLabel(c) {
-    if (!c) return '-';
     let m = /^Numpad([0-9])$/.exec(c); if (m) return 'NUM ' + m[1];
     m = /^Key([A-Z])$/.exec(c); if (m) return m[1];
     m = /^Digit([0-9])$/.exec(c); if (m) return m[1];
     return KEY_NAMES[c] || c.toUpperCase();
   }
+  function keysLabel(list) {   // 枠の表示。テンキーだけなら「NUM 7,8,9」のようにまとめる
+    if (!list.length) return '-';
+    if (list.length > 1 && list.every(c => /^Numpad[0-9]$/.test(c))) return 'NUM ' + list.map(c => c.slice(6)).join(',');
+    return list.map(keyLabel).join(',');
+  }
   const keyReserved = c => ['Escape', 'Enter', 'NumpadEnter', 'KeyM', 'KeyP', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'].includes(c) || /^F[0-9]+$/.test(c);   // メニュー・一時停止などに使うキー
   const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BACK', 'START', 'L3', 'R3', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'HOME'];
-  const padLabel = i => (i === null || i === undefined) ? '-' : (PAD_NAMES[i] || 'BTN ' + i);
+  const padsLabel = list => list.length ? list.map(i => PAD_NAMES[i] || 'BTN ' + i).join(',') : '-';
 
   const CFG = {
     en: { sound: 'SOUND', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF', kb: 'KEYBOARD', pad: 'CONTROLLER', def: 'DEFAULT',
@@ -1521,21 +1536,21 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const seg = (name, on, label) => `<div class="crow"><b>${label}</b><span class="seg" data-row><button type="button" data-${name}="on" class="${on ? 'on' : ''}">${T.on}</button><button type="button" data-${name}="off" class="${on ? '' : 'on'}">${T.off}</button></span></div>`;
     let h = `<h3>${T.sound}</h3>` + seg('music', bgm.on, T.music) + seg('sfx', sfxState.on, T.sfx);
     h += `<h3>${T.kb}</h3>`;
-    for (const a of ACTION_LIST) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('key', a, 0, keyLabel(keyBind[a][0]))}${slot('key', a, 1, keyLabel(keyBind[a][1]))}</span></div>`;
+    for (const a of ACTION_LIST) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('key', a, 0, keysLabel(keyBind[a][0]))}${slot('key', a, 1, keysLabel(keyBind[a][1]))}</span></div>`;
     h += `<div class="cdef" data-row><button type="button" data-def="key">${T.def}</button></div><div class="note${cfgMsg ? ' warn' : ''}">${cfgMsg || T.kbNote}</div>`;
     h += `<h3>${T.pad}</h3>`;
-    for (const a of PAD_ACTIONS) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('pad', a, 0, padLabel(padBind[a][0]))}${slot('pad', a, 1, padLabel(padBind[a][1]))}</span></div>`;
+    for (const a of PAD_ACTIONS) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('pad', a, 0, padsLabel(padBind[a][0]))}${slot('pad', a, 1, padsLabel(padBind[a][1]))}</span></div>`;
     h += `<div class="cdef" data-row><button type="button" data-def="pad">${T.def}</button></div><div class="note">${T.padNote}</div>`;
     configBody.innerHTML = h;
     const c = configBody.querySelector('.cap'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' });
   }
   function setKey(a, i, c) {
-    if (c) for (const x of ACTION_LIST) keyBind[x] = keyBind[x].map(v => v === c ? null : v);   // 別の操作に使っていたキーは、そちらから外す
-    keyBind[a][i] = c; cap = null; cfgMsg = ''; saveBind(); renderConfig(); navApply();
+    if (c) for (const x of ACTION_LIST) keyBind[x] = keyBind[x].map(l => l.filter(v => v !== c));   // 別の操作に使っていたキーは、そちらから外す
+    keyBind[a][i] = c ? [c] : []; cap = null; cfgMsg = ''; saveBind(); renderConfig(); navApply();
   }
   function setPad(a, i, n) {
-    if (n !== null) for (const x of PAD_ACTIONS) padBind[x] = padBind[x].map(v => v === n ? null : v);
-    padBind[a][i] = n; cap = null; saveBind(); renderConfig(); navApply();
+    if (n !== null) for (const x of PAD_ACTIONS) padBind[x] = padBind[x].map(l => l.filter(v => v !== n));
+    padBind[a][i] = n === null ? [] : [n]; cap = null; saveBind(); renderConfig(); navApply();
   }
   configBody.addEventListener('click', e => {
     const m = e.target.closest('[data-music]');
@@ -1545,7 +1560,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const d = e.target.closest('[data-def]');
     if (d) {
       const t = d.dataset.def;
-      if (t === 'key') ACTION_LIST.forEach(a => { keyBind[a] = [...KEY_DEF[a]]; }); else PAD_ACTIONS.forEach(a => { padBind[a] = [...PAD_DEF[a]]; });
+      if (t === 'key') ACTION_LIST.forEach(a => { keyBind[a] = copyDef(KEY_DEF[a]); }); else PAD_ACTIONS.forEach(a => { padBind[a] = copyDef(PAD_DEF[a]); });
       cap = null; cfgMsg = ''; saveBind(); renderConfig(); navApply(); return;
     }
     const s = e.target.closest('[data-cap]');
@@ -1569,15 +1584,16 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   if (touchMode) $('configBtn').hidden = true; else $('configBtn').hidden = false;   // CONFIG は PC だけ
   $('configBtn').addEventListener('click', openConfig);
   $('configClose').addEventListener('click', closeConfig);
+  $('configX').addEventListener('click', closeConfig);
   configEl.addEventListener('click', e => { if (e.target === configEl) closeConfig(); });
   // ゲーム中のメニューに出す、キーボード / ジョイパッドの説明(CONFIG の設定にそろえる)
   function keyRowsNow() {
     const A = CFG[isJa ? 'ja' : 'en'].actions;
-    return [...ACTION_LIST.map(a => [keyBind[a].filter(Boolean).map(keyLabel).join(' / ') || '-', A[a]]), ['ESC, P', A.pause], ['M', A.menu]];
+    return [...ACTION_LIST.map(a => [keyBind[a].filter(l => l.length).map(keysLabel).join(' / ') || '-', A[a]]), ['ESC, P', A.pause], ['M', A.menu]];
   }
   function padRowsNow() {
     const A = CFG[isJa ? 'ja' : 'en'].actions;
-    return [[isJa ? '十字キー / スティック' : 'D-PAD / STICK', isJa ? '移動 / ドロップ' : 'MOVE / DROP'], ...PAD_ACTIONS.map(a => [padBind[a].filter(x => x !== null).map(padLabel).join(' / ') || '-', A[a]])];
+    return [[isJa ? '十字キー / スティック' : 'D-PAD / STICK', isJa ? '移動 / ドロップ' : 'MOVE / DROP'], ...PAD_ACTIONS.map(a => [padBind[a].filter(l => l.length).map(padsLabel).join(' / ') || '-', A[a]])];
   }
 
   // ---- キーボード ----
@@ -1760,12 +1776,13 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   async function drawRanking({ mode, myRank = 0, myMode = 0, heading = '', back, first = false, force = false }) {
     const T = rt();
     if (first) showRank();
-    const head = heading ? `<h2>${heading}</h2>` : `<h2 class="yk">${T.ranking}</h2>`;
+    const head = '<div class="hrow">' + (heading ? `<h2>${heading}</h2>` : `<h2 class="yk">${T.ranking}</h2>`) + '<button class="x" id="rankX" type="button" aria-label="Close">&times;</button></div>';
     const tabs = `<div class="tabs"><button type="button" data-m="10" class="${mode === 10 ? 'on' : ''}">10%</button><button type="button" data-m="5" class="${mode === 5 ? 'on' : ''}">5%</button></div>`;
     const foot = extra => `<div class="rbtns">${extra || ''}<button class="main" id="rankClose" type="button">${T.back}</button></div>`;
     const wire = () => {
       rankPanel.querySelectorAll('.tabs button').forEach(b => { b.onclick = () => drawRanking({ mode: Number(b.dataset.m), myRank, myMode, heading, back }); });
       $('rankClose').onclick = back;
+      $('rankX').onclick = back;   // 右上の × も、Back To Title と同じ
     };
     rankPanel.innerHTML = head + tabs + `<p>${T.loading}</p>` + foot(); wire();
     try {
