@@ -1,6 +1,8 @@
 // Partly Rainy ランキング API(Cloudflare Workers + D1)
-//   GET  /scores?limit=10   → 上位のスコア
-//   POST /scores            → スコアを登録({ name, score, lines, level, pieces })
+//   GET  /scores?mode=5   → 上位100人(1人1件)と、100位の点数(cutoff)
+//   POST /scores          → スコアを登録({ name, score, lines, level, pieces, mode })
+// 方針: 頻度(mode)ごとに、1人1件(ベストのみ)・上位100人だけを残す。100位以下の記録は保存しない。
+// これでテーブルは最大でも 100 行 × 2 になり、D1 の読み取りが少なくて済む。
 // 不正対策は「簡易なもの」です(ブラウザから送る値は完全には信用できません)。
 
 const MAX_NAME = 12;               // 名前の最大文字数
@@ -11,20 +13,18 @@ const MODES = [5, 10];             // 巨大ピースの頻度(%)。ランキン
 
 const parseMode = v => { const n = Number(v); return MODES.includes(n) ? n : 5; };
 
-// 同じ人(名前が同じ。英字は大文字小文字を区別しない)は、いちばん高い得点の1件だけを出す(頻度ごとに別のランキング)
+// 上位100人。1人1件にしてあるので、点数の索引(mode, score DESC, created_at)で上から読むだけ
 const TOP_SQL = `
-  SELECT name, score, lines, level, created_at FROM (
-    SELECT name, score, lines, level, created_at,
-           ROW_NUMBER() OVER (PARTITION BY lower(name) ORDER BY score DESC, created_at ASC) AS rn
-    FROM scores WHERE mode = ?
-  ) WHERE rn = 1
-  ORDER BY score DESC, created_at ASC
-  LIMIT ?`;
+  SELECT name, score, lines, level, created_at FROM scores
+  WHERE mode = ? ORDER BY score DESC, created_at ASC LIMIT ${MAX_LIST}`;
 
-// 一覧はしばらく使い回す(同じ場所の Worker の中に覚えておく)。D1 の「1日の読み取り」の無料枠を使い切らないため。
+// 一覧と100位の点数は、しばらく使い回す(同じ場所の Worker の中に覚えておく)。D1 の読み取りを減らすため。
 // 読み込みに失敗したときは、古い一覧があればそれを返す。
 const LIST_TTL_MS = 60000;
-const listCache = new Map();   // "mode:limit" -> { t, body }
+const listCache = new Map();   // mode -> { t, body }   body = { mode, scores, cutoff }
+
+// 100位の点数。100人に満たないときは 0(= 点数が 1 以上なら誰でも入れる)
+const cutoffOf = scores => (scores.length >= MAX_LIST ? scores[MAX_LIST - 1].score : 0);
 
 function corsHeaders(request, env) {
   const allowed = (env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim()).filter(Boolean);
@@ -94,14 +94,13 @@ async function handle(request, env) {
 
     // ---- 上位のスコア ----
     if (request.method === 'GET') {
-      const limit = Math.min(MAX_LIST, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
       const mode = parseMode(url.searchParams.get('mode'));
-      const key = mode + ':' + limit, hit = listCache.get(key), now = Date.now();
+      const hit = listCache.get(mode), now = Date.now();
       if (hit && now - hit.t < LIST_TTL_MS) return reply(request, env, hit.body, 200, { 'Cache-Control': 'public, max-age=30' });
       try {
-        const { results } = await env.DB.prepare(TOP_SQL).bind(mode, limit).all();
-        const body = { mode, scores: results };
-        listCache.set(key, { t: now, body });
+        const { results } = await env.DB.prepare(TOP_SQL).bind(mode).all();
+        const body = { mode, scores: results, cutoff: cutoffOf(results) };
+        listCache.set(mode, { t: now, body });
         return reply(request, env, body, 200, { 'Cache-Control': 'public, max-age=30' });
       } catch (e) {
         if (hit) return reply(request, env, hit.body, 200, { 'Cache-Control': 'no-store' });   // 古い一覧でも、ないよりまし
@@ -117,11 +116,17 @@ async function handle(request, env) {
       try { body = JSON.parse(text); } catch (e) { return reply(request, env, { error: 'bad_request' }, 400); }
       const v = validate(body);
       if (v.error) return reply(request, env, { error: v.error }, 400);
+      const s = v.value;
+
+      // 覚えている100位の点数以下なら、データベースを読まずに断る(100位より低い記録は、そもそも残さない)
+      const known = listCache.get(s.mode);
+      if (known && Date.now() - known.t < LIST_TTL_MS && known.body.cutoff > 0 && s.score <= known.body.cutoff) {
+        return reply(request, env, { error: 'below_cutoff', cutoff: known.body.cutoff, mode: s.mode }, 422);
+      }
 
       const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
       const ipHash = await sha256((env.SALT || '') + ip);
       const now = Date.now();
-
       const last = await env.DB
         .prepare('SELECT created_at FROM scores WHERE ip_hash = ? ORDER BY created_at DESC LIMIT 1')
         .bind(ipHash).first();
@@ -129,22 +134,32 @@ async function handle(request, env) {
         return reply(request, env, { error: 'too_fast' }, 429);
       }
 
-      // 同じ人(名前が同じ)は1件だけ残す: いまの最高点より高いときだけ、古い行を消して、新しく入れる
-      const s = v.value;
-      const mine = await env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE mode = ? AND lower(name) = lower(?)').bind(s.mode, s.name).first();
-      const old = mine && mine.best != null ? mine.best : null;
-      let best = s.score;
-      if (old === null || s.score > old) {
+      const { results: top } = await env.DB.prepare(TOP_SQL).bind(s.mode).all();   // 上位100人(1人1件)
+      const cutoff = cutoffOf(top);
+      const lname = s.name.toLowerCase();
+      const mine = top.find(r => r.name.toLowerCase() === lname);   // 100位以内にいなければ、記録は残っていない
+      let best = s.score, updated = false;
+      if (mine && s.score <= mine.score) {
+        best = mine.score;    // ベストを超えていない: 何も書かない
+      } else if (!mine && cutoff > 0 && s.score <= cutoff) {
+        listCache.set(s.mode, { t: now, body: { mode: s.mode, scores: top, cutoff } });
+        return reply(request, env, { error: 'below_cutoff', cutoff, mode: s.mode }, 422);   // 100位に届かない: 保存しない
+      } else {
         await env.DB.batch([
           env.DB.prepare('DELETE FROM scores WHERE mode = ? AND lower(name) = lower(?)').bind(s.mode, s.name),
           env.DB.prepare('INSERT INTO scores (name, score, lines, level, pieces, mode, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
             .bind(s.name, s.score, s.lines, s.level, s.pieces, s.mode, now, ipHash),
+          // 100人を超えた分(いちばん下)を消す
+          env.DB.prepare(`DELETE FROM scores WHERE mode = ? AND id NOT IN (SELECT id FROM scores WHERE mode = ? ORDER BY score DESC, created_at ASC LIMIT ${MAX_LIST})`).bind(s.mode, s.mode),
         ]);
-        listCache.clear();
-      } else best = old;
-      // 順位は「その人の最高点より高い人の数 + 1」(1人1件なので、行を数えればよい)
-      const better = await env.DB.prepare('SELECT COUNT(*) AS c FROM scores WHERE mode = ? AND score > ?').bind(s.mode, best).first();
-      return reply(request, env, { ok: true, rank: (better ? better.c : 0) + 1, name: s.name, best, mode: s.mode });
+        updated = true;
+        listCache.delete(s.mode);
+      }
+      // 順位は「その人の最高点より高い人の数 + 1」(1人1件なので、上位100人の中を数えればよい)
+      const rank = top.filter(r => r.score > best).length + 1;
+      let newCutoff = cutoff;
+      if (updated) { const { results } = await env.DB.prepare(TOP_SQL).bind(s.mode).all(); newCutoff = cutoffOf(results); listCache.set(s.mode, { t: Date.now(), body: { mode: s.mode, scores: results, cutoff: newCutoff } }); }
+      return reply(request, env, { ok: true, rank, name: s.name, best, mode: s.mode, updated, cutoff: newCutoff });
     }
 
     return reply(request, env, { error: 'method_not_allowed' }, 405);
