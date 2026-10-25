@@ -359,6 +359,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       <tr><td>Tap the bottom edge</td><td>Drop</td></tr>
       <tr><td>Flick down</td><td>Hard drop</td></tr>
       <tr><td>Flick up</td><td>Swap with Next</td></tr>
+      <tr><td>Hold the bottom edge</td><td>Drop repeatedly</td></tr>
     </table>
     </div>
 
@@ -411,6 +412,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       <tr><td>画面の下端をタップ</td><td>ドロップ</td></tr>
       <tr><td>下にフリック</td><td>ハードドロップ</td></tr>
       <tr><td>上にフリック</td><td>Next と入れ替え</td></tr>
+      <tr><td>画面の下端を長押し</td><td>連続でドロップ</td></tr>
     </table>
     </div>
 
@@ -1174,7 +1176,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       btnRows: [],
       btnNote: 'ON-SCREEN BUTTONS APPEAR AT THE BOTTOM OF THE SCREEN.',
       flickRows: [['DRAG LEFT / RIGHT', 'MOVE'], ['TAP LEFT SIDE', 'ROTATE LEFT'], ['TAP RIGHT SIDE', 'ROTATE RIGHT'],
-                  ['TAP BOTTOM EDGE', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT']],
+                  ['TAP BOTTOM EDGE', 'DROP'], ['FLICK DOWN', 'HARD DROP'], ['FLICK UP', 'SWAP WITH NEXT'],
+                  ['HOLD BOTTOM EDGE', 'DROP REPEATEDLY']],
       flickNote: 'OPERATE ANYWHERE ON THE SCREEN. THE BOTTOM 20% IS THE DROP AREA.',
       keyRows: [['4 / 6', 'MOVE'], ['1, 5 / 3', 'ROTATE LEFT / RIGHT'], ['2', 'DROP'], ['0', 'HARD DROP'],
                 ['7, 8, 9', 'SWAP WITH NEXT'], ['ESC, P', 'PAUSE'], ['M', 'MENU']],
@@ -1187,7 +1190,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       btnRows: [],
       btnNote: '画面の下に操作ボタンが出ます。',
       flickRows: [['左右にドラッグ', '移動'], ['画面の左側をタップ', '左回転'], ['画面の右側をタップ', '右回転'],
-                  ['画面の下端をタップ', 'ドロップ'], ['下にフリック', 'ハードドロップ'], ['上にフリック', 'Next と入れ替え']],
+                  ['画面の下端をタップ', 'ドロップ'], ['下にフリック', 'ハードドロップ'], ['上にフリック', 'Next と入れ替え'],
+                  ['画面の下端を長押し', '連続でドロップ']],
       flickNote: '画面のどこでも操作できます。下の20%がドロップの範囲です。',
       keyRows: [['4 / 6', '左右に移動'], ['1, 5 / 3', '左回転 / 右回転'], ['2', 'ドロップ'], ['0', 'ハードドロップ'],
                 ['7, 8, 9', 'Next と入れ替え'], ['Esc, P', '一時停止'], ['M', 'メニュー']],
@@ -1640,13 +1644,21 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
+  const HOLD_MS = 300;   // これより長く、動かさずに押し続けたら、長押し(連続で動く)
+  function holdStop() { if (g) { clearTimeout(g.hold); clearInterval(g.rep); g.hold = g.rep = null; } }
+  function holdStart() {   // 長押し: 画面の下端を押し続けると、ドロップを連続で(左右の移動は、ドラッグだけ)
+    if (!g || g.axis || g.fingers > 1 || over || g.y0 <= vh() * 0.8) return;
+    g.holding = true;
+    act('soft');
+    g.rep = setInterval(() => act('soft'), REPEAT.soft);
+  }
   const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !leaveOpen && !configOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license, #leave, #config');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
     const t = e.touches[0];
-    if (!g) g = { x0: t.clientX, y0: t.clientY, ax: t.clientX, ay: t.clientY, t0: performance.now(), moved: false, fingers: e.touches.length };
-    else g.fingers = Math.max(g.fingers, e.touches.length);
+    if (!g) { g = { x0: t.clientX, y0: t.clientY, ax: t.clientX, ay: t.clientY, t0: performance.now(), moved: false, fingers: e.touches.length, holding: false }; g.hold = setTimeout(holdStart, HOLD_MS); }
+    else { g.fingers = Math.max(g.fingers, e.touches.length); holdStop(); }
   }, { passive: false });
   document.addEventListener('touchmove', e => {
     if (!g || !gestureOk(e)) return;
@@ -1658,6 +1670,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       if (Math.hypot(dx, dy) < 10) return;
       g.axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
       g.moved = true;
+      holdStop(); g.holding = false;   // 指を動かしたら、長押しではなく、ドラッグ / フリックとして扱う
     }
     if (g.axis === 'h') {   // 横: 動かしながらその場で移動(縦のずれは無視)
       while (t.clientX - g.ax >= cell) { act('right'); g.ax += cell; }
@@ -1671,7 +1684,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (e.touches.length) return;
     const t = e.changedTouches[0], dt = performance.now() - g.t0;
     const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
-    if (over) { /* ゲームオーバー後は何もしない(リスタートはなし) */ }
+    holdStop();
+    if (g.holding) { /* 長押しで動かしていたときは、離したときに、何もしない */ }
+    else if (over) { /* ゲームオーバー後は何もしない(リスタートはなし) */ }
     else if (g.axis === 'v') {   // 縦: 速くはじいたときだけ(下=ハードドロップ / 上=入れ替え)。ゆっくりのドラッグは何もしない
       if (dy > 0 && dt < 350 && dy > 60) act('hard');
       else if (dy < 0 && dt < 350 && -dy > 60) act('swap');
@@ -1682,7 +1697,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
     g = null;
   }, { passive: false });
-  document.addEventListener('touchcancel', () => { g = null; });
+  document.addEventListener('touchcancel', () => { holdStop(); g = null; });
 
   // ---- ジョイパッド ----
   const padPrev = {}, padNext = {};
