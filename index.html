@@ -120,6 +120,27 @@
   #leaveBtns { display:flex; gap:12px; justify-content:center; }
   .lbtn { width:110px; box-sizing:border-box; font-family:'Yodaka',system-ui,sans-serif; font-size:16px; letter-spacing:.06em; text-transform:uppercase; color:#fff;
           background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:9px 0; cursor:pointer; }
+  /* ---- CONFIG(音・キーボード・コントローラの設定) ---- */
+  #config { position:fixed; inset:0; z-index:44; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #configPanel { background:rgba(10,12,17,.92); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(540px,100%); max-height:100%; overflow:auto;
+                 padding:18px 22px; font:13px/1.6 'Yodaka',system-ui,sans-serif; text-transform:uppercase; letter-spacing:.06em; }
+  #configPanel.ja, #configPanel.ja button { font-family:system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; }
+  #configPanel.ja { font-size:14px; }
+  #configPanel h2.yk { margin:0 0 4px; font-family:'Yodaka',system-ui,sans-serif; font-weight:400; font-size:22px; letter-spacing:.06em; text-transform:uppercase; color:#fff; }
+  #configPanel h3 { margin:16px 0 6px; font-size:14px; font-weight:400; color:#fff; border-bottom:1px solid #3a4560; padding-bottom:3px; }
+  #configPanel .crow { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:5px 0; }
+  #configPanel .crow b { font-weight:400; color:#fff; }
+  #configPanel .slots, #configPanel .seg { display:flex; gap:6px; }
+  #configPanel .slots button, #configPanel .cdef button, #configPanel .seg button { font:inherit; font-size:13px; letter-spacing:inherit; color:#d3d8e0; background:rgba(255,255,255,.08);
+        border:1px solid #6b7894; border-radius:6px; padding:6px 8px; cursor:pointer; text-transform:inherit; }
+  #configPanel .slots button { width:118px; }
+  #configPanel .seg button { min-width:64px; flex:none; }
+  #configPanel .seg button.on, #configPanel .slots button.cap { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
+  #configPanel .cdef { display:flex; justify-content:flex-end; margin:6px 0 0; }
+  #configPanel .note { margin:6px 0 0; font-size:12px; color:#9fb0cc; text-transform:none; letter-spacing:0; }
+  #configPanel .note.warn { color:#ffb86b; }
+  #configPanel button.close { display:block; margin:18px 0 0 auto; font-family:'Yodaka',system-ui,sans-serif; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+                               color:#fff; background:#2f6dff; border:1px solid #8fb2ff; border-radius:6px; padding:8px 22px; cursor:pointer; }
   /* ---- ランキング / スコア登録 ---- */
   #rank { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:12px; }
   #rankPanel { background:rgba(10,12,17,.9); border:1px solid #4a5570; border-radius:10px; color:#d6dae2; width:min(440px,100%); max-height:100%;
@@ -244,6 +265,7 @@
   <button id="appsBtn" type="button" aria-label="App list"><canvas id="appsIcon" width="16" height="16"></canvas></button>
   <button class="tbtn" id="startBtn" type="button">START</button>
   <button class="tbtn" id="rankBtn" type="button" hidden>RANKING</button>
+  <button class="tbtn" id="configBtn" type="button" hidden>CONFIG</button>
   <button class="tbtn" id="howtoBtn" type="button">HOW TO</button>
   <button id="licenseBtn" type="button">&copy; 2026 daisuqe. All rights reserved.</button>
   <div id="chooser" hidden>
@@ -257,6 +279,13 @@
   <div id="leavePanel" role="dialog" aria-modal="true" aria-labelledby="leaveText">
     <p id="leaveText"></p>
     <div id="leaveBtns"><button class="lbtn" id="leaveYes" type="button">Yes</button><button class="lbtn" id="leaveNo" type="button">No</button></div>
+  </div>
+</div>
+<div id="config" hidden>
+  <div id="configPanel" role="dialog" aria-modal="true" aria-labelledby="configTitle">
+    <h2 class="yk" id="configTitle">Config</h2>
+    <div id="configBody"></div>
+    <button class="close" id="configClose" type="button">Back To Title</button>
   </div>
 </div>
 <div id="license" hidden>
@@ -292,7 +321,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       <tr><td>Esc, P</td><td>Pause</td></tr>
       <tr><td>M</td><td>Menu</td></tr>
     </table>
-    <p>Arrow keys, Z, X, Space and C also work.</p>
+    <p>Arrow keys, Z, X, Space and C also work.<br>These are the default keys. You can change them in CONFIG on the title screen.</p>
 
     <h3>Gamepad</h3>
     <table>
@@ -344,7 +373,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       <tr><td>Esc, P</td><td>一時停止</td></tr>
       <tr><td>M</td><td>メニュー</td></tr>
     </table>
-    <p>矢印キー、Z、X、Space、C でも操作できます。</p>
+    <p>矢印キー、Z、X、Space、C でも操作できます。<br>これは初期設定のキーです。タイトル画面の CONFIG で変更できます。</p>
 
     <h3>ジョイパッド</h3>
     <table>
@@ -908,7 +937,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   };
   let gMode = store.get('pr_mode', 'flick') === 'buttons' ? 'buttons' : 'flick';   // スマホの初期設定はフリック
   let menuOpen = false, menuWasPaused = false;
-  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false, licenseOpen = false, leaveOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
+  let titleOpen = true, howtoOpen = false, rankOpen = false, goBarOpen = false, chooserOpen = false, licenseOpen = false, leaveOpen = false, configOpen = false;   // goBarOpen: ゲームオーバー後の登録バー   // タイトル画面 / HOW TO の表示中
 
   const ACTIONS = {
     left: () => { if (move(-1)) sfx('move'); }, right: () => { if (move(1)) sfx('move'); }, rotL: () => rotate(false), rotR: () => rotate(true),
@@ -1167,9 +1196,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
         : rows(T.flickRows) + `<div class="note">${T.flickNote}</div>`;
       h += '</div>';
     } else {
-      h += `<h3>${T.keyboard}</h3>` + rows(T.keyRows) + `<div class="note">${T.keyNote}</div>`;
+      h += `<h3>${T.keyboard}</h3>` + rows(keyRowsNow());
     }
-    h += `<h3>${T.gamepad}</h3>` + rows(T.padRows);
+    h += `<h3>${T.gamepad}</h3>` + rows(padRowsNow());
     h += `<h3>${T.music}</h3><div class="seg"><button type="button" data-music="on" class="${bgm.on ? 'on' : ''}">${T.on}</button><button type="button" data-music="off" class="${bgm.on ? '' : 'on'}">${T.off}</button></div>`;
     h += `<h3>${T.sfx}</h3><div class="seg"><button type="button" data-sfx="on" class="${sfxState.on ? 'on' : ''}">${T.on}</button><button type="button" data-sfx="off" class="${sfxState.on ? '' : 'on'}">${T.off}</button></div>`;
     menuBody.innerHTML = h;
@@ -1269,14 +1298,14 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   function openChooser() {   // START を押したあと: 巨大ピースの頻度(10% / 5%)を選ぶ
     chooserOpen = true;
-    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = 'none'; });
+    ['startBtn', 'rankBtn', 'configBtn', 'howtoBtn'].forEach(id => { $(id).style.display = 'none'; });
     $('chooser').hidden = false;
     nav.r = 0; nav.c = store.get('pr_giant', '10') === '5' ? 1 : 0;   // 前回選んだ方を最初に選んでおく
     navApply();
   }
   function closeChooser() {
     chooserOpen = false;
-    ['startBtn', 'rankBtn', 'howtoBtn'].forEach(id => { $(id).style.display = ''; });
+    ['startBtn', 'rankBtn', 'configBtn', 'howtoBtn'].forEach(id => { $(id).style.display = ''; });
     $('chooser').hidden = true;
     nav.r = nav.c = 0; navApply();
   }
@@ -1337,6 +1366,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   const nav = { r: 0, c: 0, active: false };   // active: キーボード/ジョイパッドで操作中(このときだけ選択を明るく表示)
   function navRows() {   // いま操作できる項目を、行ごとに並べて返す(いちばん手前の画面だけ)
     if (leaveOpen) return [[$('leaveYes'), $('leaveNo')]];
+    if (configOpen) { const r = [...$('configBody').querySelectorAll('[data-row]')].map(x => [...x.querySelectorAll('button')]).filter(x => x.length); r.push([$('configClose')]); return r; }
     if (licenseOpen) return [[$('licenseClose')]];
     if (rankOpen) { const b = [...rankPanel.querySelectorAll('button')]; return b.length ? [b] : []; }
     if (howtoOpen) return [[$('howtoBack')]];
@@ -1346,7 +1376,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       return rows;
     }
     if (titleOpen && chooserOpen) return [[$('giant10'), $('giant5')]];
-    if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), [$('howtoBtn')]];
+    if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), ...($('configBtn').hidden ? [] : [[$('configBtn')]]), [$('howtoBtn')]];
+    if (goBarOpen) { const r = []; if (!goInput.hidden) r.push([goInput]); r.push([goSubmit, goExit].filter(x => !x.hidden)); return r; }   // ゲームオーバーの登録バー(名前の欄 → OK / Exit)
     return [];
   }
   function navApply() {   // 選択中の項目に枠を付ける
@@ -1361,6 +1392,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   function navReset() { nav.r = nav.c = 0; navApply(); }
   function navMove(dc, dr) {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();   // 名前の欄にいたら、外す
     const rows = navRows();
     if (!rows.length) return;
     if (!nav.active) { nav.active = true; navApply(); return; }   // 最初の1回は、今の選択を見せるだけ(動かさない)
@@ -1373,10 +1405,11 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   function navActivate() {
     const rows = navRows(), b = rows[nav.r] && rows[nav.r][nav.c];
-    if (b && !b.disabled) b.click();
+    if (b && b.tagName === 'INPUT') b.focus();   // 名前の欄は、選ぶとキーボードで入力できる
+    else if (b && !b.disabled) b.click();
     setTimeout(navApply, 30);   // 押した結果で表示が作り直されても、選択の枠を付け直す
   }
-  function overlayBack() { if (leaveOpen) closeLeave(); else if (licenseOpen) closeLicense(); else if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
+  function overlayBack() { if (leaveOpen) closeLeave(); else if (configOpen) closeConfig(); else if (licenseOpen) closeLicense(); else if (rankOpen) closeRank(); else if (howtoOpen) closeHowto(); else if (menuOpen) closeMenu(); else if (chooserOpen) closeChooser(); }
   const NAV_KEYS = {
     ArrowUp: [0, -1], Numpad8: [0, -1], ArrowDown: [0, 1], Numpad2: [0, 1],
     ArrowLeft: [-1, 0], Numpad4: [-1, 0], ArrowRight: [1, 0], Numpad6: [1, 0],
@@ -1386,17 +1419,14 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (k === 'Enter' || k === 'NumpadEnter' || k === 'Space') { nav.active = true; navActivate(); return true; }
     return false;
   }
-  function overlayPad(k) {   // ジョイパッド: メニュー類が開いていれば処理して true
-    if (!(leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen)) return false;
-    if (k === 'rotR') nav.active = true;   // A で決定するときも、操作中として扱う
-    if (k === 'hard' || k === 'up') navMove(0, -1);   // 十字キー上 / スティック上
-    else if (k === 'soft') navMove(0, 1);
+  function overlayPad(k) {   // ジョイパッド: メニュー類の操作。十字キー/スティックで選び、A で決定、B / Back で戻る(割り当ての設定とは関係なく、いつも同じ)
+    if (k === 'up') navMove(0, -1);
+    else if (k === 'down') navMove(0, 1);
     else if (k === 'left') navMove(-1, 0);
     else if (k === 'right') navMove(1, 0);
-    else if (k === 'rotR') navActivate();                       // A = 決定
-    else if (k === 'rotL' || k === 'menu') overlayBack();       // B / Back = 戻る
-    else if (k === 'pause') { if (titleOpen && !rankOpen && !howtoOpen) { if (chooserOpen) navActivate(); else openChooser(); } else overlayBack(); }   // Start
-    return true;
+    else if (k === 'ok') { nav.active = true; navActivate(); }   // A = 決定
+    else if (k === 'back') overlayBack();                       // B / Back = 戻る
+    else if (k === 'start') { if (titleOpen && !leaveOpen && !licenseOpen && !configOpen && !rankOpen && !howtoOpen) { if (chooserOpen) navActivate(); else openChooser(); } else overlayBack(); }   // Start
   }
   // 日本語環境ならヘルプも日本語で表示
   $('howtoPanel').classList.toggle('ja', isJa);
@@ -1420,25 +1450,149 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   });
   addEventListener('dragstart', e => { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
 
+  // ================= CONFIG: 音・キーボード・コントローラの設定 =================
+  const ACTION_LIST = ['left', 'right', 'rotL', 'rotR', 'soft', 'hard', 'swap'];
+  const PAD_ACTIONS = [...ACTION_LIST, 'pause', 'menu'];
+  // 初期設定。1つの操作に、キー(ボタン)を2つまで割り当てられる
+  const KEY_DEF = { left: ['Numpad4', 'ArrowLeft'], right: ['Numpad6', 'ArrowRight'], rotL: ['Numpad1', 'KeyZ'], rotR: ['Numpad3', 'KeyX'],
+                    soft: ['Numpad2', 'ArrowDown'], hard: ['Numpad0', 'Space'], swap: ['Numpad7', 'KeyC'] };
+  const KEY_ALIAS = { Numpad5: 'rotL', ArrowUp: 'rotR', Numpad8: 'swap', Numpad9: 'swap' };   // 初期設定のおまけのキー(ほかの操作に割り当てたら、そちらが優先)
+  const PAD_DEF = { left: [14, null], right: [15, null], soft: [13, null], hard: [12, 7], rotR: [0, null], rotL: [1, 2], swap: [3, 4], pause: [9, null], menu: [8, null] };
+  const PAD_ALIAS = { 5: 'swap' };
+  const copyDef = d => JSON.parse(JSON.stringify(d));
+  function loadBind(key, def, ok) {
+    try {
+      const v = JSON.parse(store.get(key, 'null'));
+      if (v && Object.keys(def).every(a => Array.isArray(v[a]) && v[a].length === 2 && v[a].every(x => x === null || ok(x)))) return v;
+    } catch (e) {}
+    return copyDef(def);
+  }
+  const keyBind = loadBind('pr_keys', KEY_DEF, x => typeof x === 'string');
+  const padBind = loadBind('pr_pad', PAD_DEF, x => Number.isInteger(x) && x >= 0 && x < 32);
+  let keyMap = {}, padMap = {};   // キー(ボタン) → 操作
+  function buildMaps() {
+    keyMap = {}; padMap = {};
+    for (const a of ACTION_LIST) keyBind[a].forEach(c => { if (c) keyMap[c] = a; });
+    for (const c in KEY_ALIAS) if (!keyMap[c]) keyMap[c] = KEY_ALIAS[c];
+    for (const a of PAD_ACTIONS) padBind[a].forEach(i => { if (i !== null) padMap[i] = a; });
+    for (const i in PAD_ALIAS) if (!(i in padMap)) padMap[i] = PAD_ALIAS[i];
+  }
+  buildMaps();
+  function saveBind() { store.set('pr_keys', JSON.stringify(keyBind)); store.set('pr_pad', JSON.stringify(padBind)); buildMaps(); }
+
+  const KEY_NAMES = { ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ArrowUp: 'UP', ArrowDown: 'DOWN', Space: 'SPACE', ShiftLeft: 'L-SHIFT', ShiftRight: 'R-SHIFT',
+    ControlLeft: 'L-CTRL', ControlRight: 'R-CTRL', AltLeft: 'L-ALT', AltRight: 'R-ALT', NumpadAdd: 'NUM +', NumpadSubtract: 'NUM -', NumpadMultiply: 'NUM *',
+    NumpadDivide: 'NUM /', NumpadDecimal: 'NUM .', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']',
+    Minus: '-', Equal: '=', Backquote: '`', Backslash: 'BACKSLASH', Backspace: 'BKSP', CapsLock: 'CAPS', PageUp: 'PGUP', PageDown: 'PGDN', Insert: 'INS', Delete: 'DEL' };
+  function keyLabel(c) {
+    if (!c) return '-';
+    let m = /^Numpad([0-9])$/.exec(c); if (m) return 'NUM ' + m[1];
+    m = /^Key([A-Z])$/.exec(c); if (m) return m[1];
+    m = /^Digit([0-9])$/.exec(c); if (m) return m[1];
+    return KEY_NAMES[c] || c.toUpperCase();
+  }
+  const keyReserved = c => ['Escape', 'Enter', 'NumpadEnter', 'KeyM', 'KeyP', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'].includes(c) || /^F[0-9]+$/.test(c);   // メニュー・一時停止などに使うキー
+  const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BACK', 'START', 'L3', 'R3', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'HOME'];
+  const padLabel = i => (i === null || i === undefined) ? '-' : (PAD_NAMES[i] || 'BTN ' + i);
+
+  const CFG = {
+    en: { sound: 'SOUND', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF', kb: 'KEYBOARD', pad: 'CONTROLLER', def: 'DEFAULT',
+          press: 'PRESS A KEY...', pressPad: 'PRESS A BUTTON...',
+          kbNote: 'CLICK A KEY, THEN PRESS THE NEW KEY. BACKSPACE = CLEAR. ESC = CANCEL. ESC, P = PAUSE AND M = MENU CANNOT BE CHANGED.',
+          padNote: 'D-PAD / LEFT STICK ALWAYS MOVE AND DROP. IN MENUS: D-PAD / STICK = SELECT, A = OK, B = BACK.',
+          reserved: 'THAT KEY IS RESERVED. PLEASE CHOOSE ANOTHER.',
+          actions: { left: 'MOVE LEFT', right: 'MOVE RIGHT', rotL: 'ROTATE LEFT', rotR: 'ROTATE RIGHT', soft: 'DROP', hard: 'HARD DROP', swap: 'SWAP WITH NEXT', pause: 'PAUSE', menu: 'MENU' } },
+    ja: { sound: '音', music: '音楽', sfx: '効果音', on: 'ON', off: 'OFF', kb: 'キーボード', pad: 'コントローラー', def: '初期設定に戻す',
+          press: 'キーを押してください...', pressPad: 'ボタンを押してください...',
+          kbNote: '変えたいキーを押してから、新しいキーを押します。Backspace で空にします。Esc で取り消します。Esc・P(一時停止)と M(メニュー)は変えられません。',
+          padNote: '十字キーと左スティックの左右・下は、いつも移動・ドロップです。メニューでは、十字キー / スティックで選び、A で決定、B で戻ります。',
+          reserved: 'このキーは使えません。ほかのキーにしてください。',
+          actions: { left: '左へ移動', right: '右へ移動', rotL: '左回転', rotR: '右回転', soft: 'ドロップ', hard: 'ハードドロップ', swap: 'Next と入れ替え', pause: '一時停止', menu: 'メニュー' } },
+  };
+  let cap = null;   // 割り当て待ち: { type: 'key' | 'pad', a: 操作, i: 0 | 1, t0 }
+  let cfgMsg = '';
+  const configEl = $('config'), configBody = $('configBody');
+  function renderConfig() {
+    const T = CFG[isJa ? 'ja' : 'en'], A = T.actions;
+    const slot = (type, a, i, label) => {
+      const on = cap && cap.type === type && cap.a === a && cap.i === i;
+      return `<button type="button" class="slot${on ? ' cap' : ''}" data-cap="${type}" data-a="${a}" data-i="${i}">${on ? (type === 'key' ? T.press : T.pressPad) : label}</button>`;
+    };
+    const seg = (name, on, label) => `<div class="crow"><b>${label}</b><span class="seg" data-row><button type="button" data-${name}="on" class="${on ? 'on' : ''}">${T.on}</button><button type="button" data-${name}="off" class="${on ? '' : 'on'}">${T.off}</button></span></div>`;
+    let h = `<h3>${T.sound}</h3>` + seg('music', bgm.on, T.music) + seg('sfx', sfxState.on, T.sfx);
+    h += `<h3>${T.kb}</h3>`;
+    for (const a of ACTION_LIST) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('key', a, 0, keyLabel(keyBind[a][0]))}${slot('key', a, 1, keyLabel(keyBind[a][1]))}</span></div>`;
+    h += `<div class="cdef" data-row><button type="button" data-def="key">${T.def}</button></div><div class="note${cfgMsg ? ' warn' : ''}">${cfgMsg || T.kbNote}</div>`;
+    h += `<h3>${T.pad}</h3>`;
+    for (const a of PAD_ACTIONS) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('pad', a, 0, padLabel(padBind[a][0]))}${slot('pad', a, 1, padLabel(padBind[a][1]))}</span></div>`;
+    h += `<div class="cdef" data-row><button type="button" data-def="pad">${T.def}</button></div><div class="note">${T.padNote}</div>`;
+    configBody.innerHTML = h;
+    const c = configBody.querySelector('.cap'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' });
+  }
+  function setKey(a, i, c) {
+    if (c) for (const x of ACTION_LIST) keyBind[x] = keyBind[x].map(v => v === c ? null : v);   // 別の操作に使っていたキーは、そちらから外す
+    keyBind[a][i] = c; cap = null; cfgMsg = ''; saveBind(); renderConfig(); navApply();
+  }
+  function setPad(a, i, n) {
+    if (n !== null) for (const x of PAD_ACTIONS) padBind[x] = padBind[x].map(v => v === n ? null : v);
+    padBind[a][i] = n; cap = null; saveBind(); renderConfig(); navApply();
+  }
+  configBody.addEventListener('click', e => {
+    const m = e.target.closest('[data-music]');
+    if (m) { bgmSetOn(m.dataset.music === 'on'); renderConfig(); navApply(); return; }
+    const sx = e.target.closest('[data-sfx]');
+    if (sx) { sfxSetOn(sx.dataset.sfx === 'on'); renderConfig(); navApply(); return; }
+    const d = e.target.closest('[data-def]');
+    if (d) {
+      const t = d.dataset.def;
+      if (t === 'key') ACTION_LIST.forEach(a => { keyBind[a] = [...KEY_DEF[a]]; }); else PAD_ACTIONS.forEach(a => { padBind[a] = [...PAD_DEF[a]]; });
+      cap = null; cfgMsg = ''; saveBind(); renderConfig(); navApply(); return;
+    }
+    const s = e.target.closest('[data-cap]');
+    if (s) { cap = { type: s.dataset.cap, a: s.dataset.a, i: Number(s.dataset.i), t0: performance.now() }; cfgMsg = ''; if (cap.type === 'pad') padLock = true;   // 決定に使ったボタンが、そのまま割り当てられないように、いったん離すまで待つ
+      renderConfig(); navApply(); return; }
+    if (cap) { cap = null; renderConfig(); navApply(); }
+  });
+  addEventListener('keydown', e => {   // 割り当て待ちの間は、押されたキーをここで受け取る(ほかの処理には渡さない)
+    if (!cap) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const c = e.code;
+    if (c === 'Escape') { cap = null; cfgMsg = ''; renderConfig(); navApply(); return; }
+    if (c === 'Backspace' || c === 'Delete') { cap.type === 'key' ? setKey(cap.a, cap.i, null) : setPad(cap.a, cap.i, null); return; }
+    if (cap.type !== 'key') return;
+    if (keyReserved(c)) { cfgMsg = CFG[isJa ? 'ja' : 'en'].reserved; renderConfig(); navApply(); return; }
+    setKey(cap.a, cap.i, c);
+  }, true);
+  function openConfig() { configOpen = true; cap = null; cfgMsg = ''; renderConfig(); configEl.hidden = false; $('configPanel').scrollTop = 0; navReset(); }
+  function closeConfig() { configOpen = false; cap = null; configEl.hidden = true; navApply(); }
+  $('configPanel').classList.toggle('ja', isJa);
+  if (touchMode) $('configBtn').hidden = true; else $('configBtn').hidden = false;   // CONFIG は PC だけ
+  $('configBtn').addEventListener('click', openConfig);
+  $('configClose').addEventListener('click', closeConfig);
+  configEl.addEventListener('click', e => { if (e.target === configEl) closeConfig(); });
+  // ゲーム中のメニューに出す、キーボード / ジョイパッドの説明(CONFIG の設定にそろえる)
+  function keyRowsNow() {
+    const A = CFG[isJa ? 'ja' : 'en'].actions;
+    return [...ACTION_LIST.map(a => [keyBind[a].filter(Boolean).map(keyLabel).join(' / ') || '-', A[a]]), ['ESC, P', A.pause], ['M', A.menu]];
+  }
+  function padRowsNow() {
+    const A = CFG[isJa ? 'ja' : 'en'].actions;
+    return [[isJa ? '十字キー / スティック' : 'D-PAD / STICK', isJa ? '移動 / ドロップ' : 'MOVE / DROP'], ...PAD_ACTIONS.map(a => [padBind[a].filter(x => x !== null).map(padLabel).join(' / ') || '-', A[a]])];
+  }
+
   // ---- キーボード ----
   addEventListener('keydown', e => {
     const k = e.code;
     if (goBarOpen && e.target && e.target.id === 'nameIn') return;   // 名前の入力中はゲームのキーを無効に
     if (e.target && (e.target.id === 'licenseBtn' || e.target.id === 'appsBtn') && (k === 'Enter' || k === 'NumpadEnter' || k === 'Space')) return;   // 著作権の表示は、Enter / Space で、ブラウザの標準の動きで開く
-    if (leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
-      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
+    if (configOpen || leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || titleOpen) {   // メニュー類: 上下左右で選び、Enter で決定、Esc で戻る
+      if (k === 'Escape' || (k === 'KeyM' && menuOpen)) { if (!titleOpen || configOpen || leaveOpen || licenseOpen || rankOpen || howtoOpen || menuOpen || chooserOpen) { overlayBack(); e.preventDefault(); } return; }
       if (navKey(k)) e.preventDefault();
       return;
     }
     if (k === 'KeyM') { nav.active = true; openMenu(); e.preventDefault(); return; }   // ゲーム中: M でメニュー
     if (k === 'KeyP' || k === 'Escape') { togglePause(); e.preventDefault(); return; }
-    const map = {
-      Numpad4: 'left', ArrowLeft: 'left', Numpad6: 'right', ArrowRight: 'right',
-      Numpad1: 'rotL', Numpad5: 'rotL', KeyZ: 'rotL', Numpad3: 'rotR', KeyX: 'rotR', ArrowUp: 'rotR',
-      Numpad2: 'soft', ArrowDown: 'soft', Numpad0: 'hard', Space: 'hard',
-      Numpad7: 'swap', Numpad8: 'swap', Numpad9: 'swap', KeyC: 'swap',
-    };
-    const a = map[k];
+    const a = keyMap[k];   // 割り当ては、CONFIG で変えられる
     if (!a) return;
     e.preventDefault();
     if (REPEAT[a]) {   // 左右・下は、OSのキーリピート(最初の待ちが長い)に頼らず、自前で連続させる
@@ -1470,7 +1624,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !leaveOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license, #leave');
+  const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !leaveOpen && !configOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license, #leave, #config');
   document.addEventListener('touchstart', e => {
     if (!gestureOk(e)) return;
     e.preventDefault();
@@ -1516,29 +1670,43 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- ジョイパッド ----
   const padPrev = {}, padNext = {};
-  const NAV_REPEAT = new Set(['left', 'right', 'soft', 'up', 'hard']);
+  const NAV_REPEAT = new Set(['up', 'down', 'left', 'right']);
+  let padWasOverlay = true, padLock = false;   // 設定でボタンを割り当てた直後は、全部のボタンを離すまで、何も受け付けない
   function pollPad(t) {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     let p = null;
     for (const x of pads) if (x && x.connected) { p = x; break; }
     if (!p) return;
     const B = i => !!(p.buttons[i] && p.buttons[i].pressed);
+    const anyDown = p.buttons.some(x => x && x.pressed);
+    if (padLock) { if (!anyDown) { padLock = false; for (const k in padPrev) padPrev[k] = false; } return; }
     const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
-    const st = {
-      left: B(14) || ax < -.5, right: B(15) || ax > .5, soft: B(13) || ay > .6, up: ay < -.6,   // up(スティック上)はメニュー専用
-      rotR: B(0), rotL: B(1) || B(2), hard: B(12) || B(7), swap: B(3) || B(4) || B(5), pause: B(9), menu: B(8),
-    };
-    const inOverlay = rankOpen || howtoOpen || menuOpen || titleOpen;   // メニュー類の操作中は、押しっぱなしの移動をゆっくりにする
+    if (cap && cap.type === 'pad') {   // CONFIG: 押されたボタンを割り当てる
+      const i = p.buttons.findIndex(x => x && x.pressed);
+      if (i >= 0) { setPad(cap.a, cap.i, i); padLock = true; }
+      else if (t - cap.t0 > 8000) { cap = null; renderConfig(); navApply(); }
+      return;
+    }
+    const inOverlay = leaveOpen || licenseOpen || configOpen || rankOpen || howtoOpen || menuOpen || titleOpen || goBarOpen;   // メニュー類の操作中
+    let st;
+    if (inOverlay) {
+      st = { up: B(12) || ay < -.6, down: B(13) || ay > .6, left: B(14) || ax < -.5, right: B(15) || ax > .5, ok: B(0), back: B(1) || B(8), start: B(9) };
+    } else {
+      st = { left: ax < -.5, right: ax > .5, soft: ay > .6, rotL: false, rotR: false, hard: false, swap: false, pause: false, menu: false };   // 十字キー・スティックの左右下は、いつも動く
+      for (const i in padMap) if (B(+i)) st[padMap[i]] = true;
+    }
+    const switched = inOverlay !== padWasOverlay;   // メニューを開いた / 閉じた瞬間は、押しっぱなしのボタンを、新しい画面の操作として扱わない
+    padWasOverlay = inOverlay;
     for (const k in st) {
-      const was = padPrev[k]; padPrev[k] = st[k];
+      const id = (inOverlay ? 'n:' : 'g:') + k, was = switched ? st[k] : padPrev[id];
+      padPrev[id] = st[k];
       if (!st[k]) continue;
       let fire = false;
-      if (!was) { fire = true; padNext[k] = t + DAS; }
-      else if (t >= padNext[k] && (inOverlay ? NAV_REPEAT.has(k) : REPEAT[k])) { fire = true; padNext[k] = t + (inOverlay ? 150 : REPEAT[k]); }
+      if (!was) { fire = true; padNext[id] = t + (inOverlay ? 300 : DAS); }
+      else if (t >= padNext[id] && (inOverlay ? NAV_REPEAT.has(k) : REPEAT[k])) { fire = true; padNext[id] = t + (inOverlay ? 150 : REPEAT[k]); }
       if (!fire) continue;
-      if (overlayPad(k)) continue;   // メニュー類が開いている間は、そちらを操作
-      if (k === 'up') continue;       // スティック上は、ゲーム中は何もしない(ハードドロップはしない)
-      if (k === 'menu') { nav.active = true; openMenu(); }
+      if (inOverlay) overlayPad(k);
+      else if (k === 'menu') { nav.active = true; openMenu(); }
       else if (k === 'pause') togglePause();
       else act(k);
     }
@@ -1630,11 +1798,12 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     goData = { score, lines, level, pieces: count - 1, mode: giantPct };
     const skip = score <= rkBest(giantPct) ? T.notBest : (rkCutoff(giantPct) > 0 && score <= rkCutoff(giantPct)) ? T.cut : '';   // 登録しても変わらない得点は、送らない
     goInput.hidden = goSubmit.hidden = !!skip;
-    if (skip) { goSubmit.disabled = true; goExit.textContent = 'Exit'; goMsg.textContent = skip; goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout(); return; }
+    if (skip) { goSubmit.disabled = true; goExit.textContent = 'Exit'; goMsg.textContent = skip; goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout(); nav.r = 0; nav.c = 0; navApply(); return; }
     let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
     goInput.value = lastName || memName;   // 前回の名前を、最初から入れておく goInput.placeholder = T.name;
     goSubmit.textContent = T.submit; goSubmit.disabled = false; goExit.textContent = 'Exit'; goMsg.textContent = '';
     goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout();
+    nav.r = goInput.value ? 1 : 0; nav.c = 0; navApply();   // ジョイパッドで操作するときの、最初の選択(名前が入っていれば OK)
     if (!touchMode) goInput.focus();   // スマホでは、勝手にキーボードを出さない
   }
   function showResult(rank, force = false) {   // 登録のあと: 順位と、遊んだ頻度の上位の一覧(タブで別の頻度も見られる)
