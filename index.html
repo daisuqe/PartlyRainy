@@ -546,10 +546,30 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     return false;
   }
   function rotate(cw) {
-    // 位置(箱の原点)は動かさず、回転後の配置に切り替えるだけ。ぶつかるなら回転しない
     const rot = (cur.rot + (cw ? 1 : 3)) % 4;
     const m = scale(ROT[cur.name][rot], cur.s);
-    if (!hit(m, cur.x, cur.y)) { cur.rot = rot; cur.m = m; sfx('rotate'); }
+    let dx = 0, dy = 0, ok = !hit(m, cur.x, cur.y);
+    if (!ok) {   // ウォールキック: 壁や積んだブロックにぶつかるなら、位置をずらして回転する
+      // ぶつかっているマスが、ピースの右側に多ければ左へ、左側(か真ん中)に多ければ右へ、先にずらす
+      let side = 0;
+      const w = m[0].length;
+      for (let r = 0; r < m.length; r++) for (let c = 0; c < w; c++) {
+        if (!m[r][c]) continue;
+        const gx = cur.x + c, gy = cur.y + r;
+        if (gx < 0 || gx >= COLS || gy >= ROWS || (gy >= 0 && grid[gy][gx])) side += c - (w - 1) / 2;
+      }
+      const first = side > 0 ? -1 : 1;
+      const maxd = 2 * cur.s;   // ずらせるのは、ふつうのピースで2マスまで(巨大ピースは4マス)
+      search: for (let d = 1; d <= maxd; d++) for (const sg of [first, -first]) {
+        if (!hit(m, cur.x + sg * d, cur.y)) { dx = sg * d; ok = true; break search; }
+      }
+      if (!ok && hit(cur.m, cur.x, cur.y + 1)) {   // 床や積んだブロックの上にいるときだけ、上にずらして回転できる(床キック)
+        up: for (let u = 1; u <= cur.s; u++) for (const sx of [0, first, -first]) {
+          if (!hit(m, cur.x + sx, cur.y - u)) { dx = sx; dy = -u; ok = true; break up; }
+        }
+      }
+    }
+    if (ok) { cur.rot = rot; cur.m = m; cur.x += dx; cur.y += dy; sfx('rotate'); }
   }
   function softDrop() {
     if (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; score += 1; dropAt = performance.now(); sfx('soft'); }
@@ -825,6 +845,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     for (const [dx, dy, r] of puffs) { c.beginPath(); c.arc(x + dx * k, y + dy * k, r * k, 0, 6.283); c.fill(); }
     c.globalAlpha = 1;
   }
+  let bgBlack = false;   // 盤面の中の背景色の設定(CONFIG): false = DEFAULT(天気に合わせた青) / true = BLACK(まっ黒)。盤面の外の背景は変えない
+  try { bgBlack = localStorage.getItem('pr_bg') === 'black'; } catch (e) {}
   function drawBackground(t) {
     cloud += (tCloud - cloud) * .02; rain += (tRain - rain) * .03;
     const c = bctx, W = bgCv.width, H = bgCv.height, k = H / 700, hz = H * .78;
@@ -832,9 +854,10 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const top = `rgb(${mix(20, 70, cloud)},${mix(130, 80, cloud)},${mix(255, 100, cloud)})`;
     sky.addColorStop(0, top);
     const dk = .7 * (1 - .35 * cloud) * (1 - .88 * rain) * (1 - .85 * rain);   // 暗幕を反映した空の明るさに対し、盤面はさらに7割
-    board.style.background = `rgb(${mix(20, 70, cloud) * dk | 0},${mix(130, 80, cloud) * dk | 0},${mix(255, 100, cloud) * dk | 0})`;   // 盤面の背景は空の一番濃い色より暗く
-    document.documentElement.style.setProperty('--bb', board.style.background);   // MENUボタンは盤面と同じ色
-    document.documentElement.style.setProperty('--pb', board.style.background.replace('rgb(', 'rgba(').replace(')', ', .75)'));   // メニュー背景: 盤面と同じ色の75%
+    const boardCol = `rgb(${mix(20, 70, cloud) * dk | 0},${mix(130, 80, cloud) * dk | 0},${mix(255, 100, cloud) * dk | 0})`;   // 天気に合わせた盤面の青(ボタンやメニューの色は、BLACK のときもこの色)
+    board.style.background = bgBlack ? '#000' : boardCol;   // 盤面の背景は空の一番上の色の7割(BLACK なら黒)
+    document.documentElement.style.setProperty('--bb', boardCol);   // MENUボタンは盤面と同じ色
+    document.documentElement.style.setProperty('--pb', boardCol.replace('rgb(', 'rgba(').replace(')', ', .75)'));   // メニュー背景: 盤面と同じ色の75%
     const kb = cloud * cloud;   // 空の下側は上側より遅れて暗くなる(上半分が先)
     sky.addColorStop(1, `rgb(${mix(110, 135, kb)},${mix(200, 145, kb)},${mix(255, 155, kb)})`);
     c.fillStyle = sky; c.fillRect(0, 0, W, H);
@@ -882,7 +905,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     ctx.clearRect(0, 0, board.width, board.height);
     // グリッド線: 晴れは背景より暗く、雨で背景が暗くなるにつれ背景より明るい線にする
     ctx.lineWidth = 1;
-    for (const [col, al] of [['0,0,0', .12 * (1 - rain)], ['255,255,255', .08 * rain]]) {
+    for (const [col, al] of (bgBlack ? [['255,255,255', .1]] : [['0,0,0', .12 * (1 - rain)], ['255,255,255', .08 * rain]])) {
       if (al <= .005) continue;
       ctx.strokeStyle = `rgba(${col},${al})`;
       ctx.beginPath();
@@ -1233,7 +1256,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('closeBtn').addEventListener('click', closeMenu);
   $('menuX').addEventListener('click', closeMenu);
-  $('restartBtn').addEventListener('click', () => { closeMenu(); goTitle(); });   // 「Back To Title」
+  $('restartBtn').addEventListener('click', () => { if (over) { closeMenu(); goTitle(); } else openLeave('title'); });   // 「Back To Title」: ゲーム中は、確認してから
   menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
   menuBody.addEventListener('click', e => {
     const m = e.target.closest('[data-music]');
@@ -1362,13 +1385,28 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   { const g = $('appsIcon').getContext('2d'); g.fillStyle = '#fff';
     APPS_ICON.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') g.fillRect(x, y, 1, 1); })); }
   const leaveEl = $('leave');
-  $('leaveText').textContent = isJa ? 'アプリ一覧に移動します。\nこのゲームを離れますがよろしいですか？' : 'This will take you to the app list.\nDo you want to leave this game?';
+  const LEAVE_TXT = {
+    apps: isJa ? 'アプリ一覧に移動します。\nこのゲームを離れますがよろしいですか？' : 'This will take you to the app list.\nDo you want to leave this game?',
+    title: isJa ? 'タイトルに戻ります。\nいまのゲームは、ここで終わりますがよろしいですか？' : 'Go back to the title screen?\nThe current game will end.',
+  };
+  let leaveMode = 'apps', leaveNav = [0, 0];
   $('leaveText').style.whiteSpace = 'pre-line';
-  function openLeave() { leaveOpen = true; leaveEl.hidden = false; navReset(); nav.c = 1; $('leaveNo').focus(); }
-  function closeLeave() { leaveOpen = false; leaveEl.hidden = true; navApply(); $('appsBtn').focus(); }
-  $('appsBtn').addEventListener('click', openLeave);
+  function openLeave(mode = 'apps') {
+    leaveMode = mode; leaveNav = [nav.r, nav.c];   // 閉じたあと、メニューの選択を元に戻すために覚えておく
+    $('leaveText').textContent = LEAVE_TXT[mode];
+    leaveOpen = true; leaveEl.hidden = false; navReset(); nav.c = 1; $('leaveNo').focus();
+  }
+  function closeLeave() {
+    leaveOpen = false; leaveEl.hidden = true;
+    if (leaveMode === 'title') { [nav.r, nav.c] = leaveNav; $('restartBtn').focus(); } else $('appsBtn').focus();
+    navApply();
+  }
+  $('appsBtn').addEventListener('click', () => openLeave('apps'));
   $('leaveNo').addEventListener('click', closeLeave);
-  $('leaveYes').addEventListener('click', () => { location.href = 'https://daisuqe.github.io/'; });
+  $('leaveYes').addEventListener('click', () => {
+    if (leaveMode === 'title') { leaveOpen = false; leaveEl.hidden = true; closeMenu(); goTitle(); return; }   // タイトルに戻る
+    location.href = 'https://daisuqe.github.io/';
+  });
   leaveEl.addEventListener('click', e => { if (e.target === leaveEl) closeLeave(); });
   const licenseEl = $('license');
   function openLicense() { licenseOpen = true; licenseEl.hidden = false; $('licensePanel').scrollTop = 0; navReset(); $('licenseClose').focus(); }
@@ -1515,13 +1553,13 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   const padsLabel = list => list.length ? list.map(i => PAD_NAMES[i] || 'BTN ' + i).join(',') : '-';
 
   const CFG = {
-    en: { sound: 'SOUND', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF', kb: 'KEYBOARD', pad: 'CONTROLLER', def: 'DEFAULT',
+    en: { sound: 'SETTING', bg: 'BACKGROUND', bgDef: 'DEFAULT', bgBlack: 'BLACK', music: 'MUSIC', sfx: 'SOUND EFFECTS', on: 'ON', off: 'OFF', kb: 'KEYBOARD', pad: 'CONTROLLER', def: 'DEFAULT',
           press: 'PRESS A KEY...', pressPad: 'PRESS A BUTTON...',
           kbNote: 'CLICK A KEY, THEN PRESS THE NEW KEY. BACKSPACE = CLEAR. ESC = CANCEL. ESC, P = PAUSE AND M = MENU CANNOT BE CHANGED.',
           padNote: 'D-PAD / LEFT STICK ALWAYS MOVE AND DROP. IN MENUS: D-PAD / STICK = SELECT, A = OK, B = BACK.',
           reserved: 'THAT KEY IS RESERVED. PLEASE CHOOSE ANOTHER.',
           actions: { left: 'MOVE LEFT', right: 'MOVE RIGHT', rotL: 'ROTATE LEFT', rotR: 'ROTATE RIGHT', soft: 'DROP', hard: 'HARD DROP', swap: 'SWAP WITH NEXT', pause: 'PAUSE', menu: 'MENU' } },
-    ja: { sound: '音', music: '音楽', sfx: '効果音', on: 'ON', off: 'OFF', kb: 'キーボード', pad: 'コントローラー', def: '初期設定に戻す',
+    ja: { sound: '設定', bg: '背景色', bgDef: 'DEFAULT', bgBlack: 'BLACK', music: '音楽', sfx: '効果音', on: 'ON', off: 'OFF', kb: 'キーボード', pad: 'コントローラー', def: '初期設定に戻す',
           press: 'キーを押してください...', pressPad: 'ボタンを押してください...',
           kbNote: '変えたいキーを押してから、新しいキーを押します。Backspace で空にします。Esc で取り消します。Esc・P(一時停止)と M(メニュー)は変えられません。',
           padNote: '十字キーと左スティックの左右・下は、いつも移動・ドロップです。メニューでは、十字キー / スティックで選び、A で決定、B で戻ります。',
@@ -1538,7 +1576,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       return `<button type="button" class="slot${on ? ' cap' : ''}" data-cap="${type}" data-a="${a}" data-i="${i}">${on ? (type === 'key' ? T.press : T.pressPad) : label}</button>`;
     };
     const seg = (name, on, label) => `<div class="crow"><b>${label}</b><span class="seg" data-row><button type="button" data-${name}="on" class="${on ? 'on' : ''}">${T.on}</button><button type="button" data-${name}="off" class="${on ? '' : 'on'}">${T.off}</button></span></div>`;
-    let h = `<h3>${T.sound}</h3>` + seg('music', bgm.on, T.music) + seg('sfx', sfxState.on, T.sfx);
+    const bgSeg = `<div class="crow"><b>${T.bg}</b><span class="seg" data-row><button type="button" data-bg="default" class="${bgBlack ? '' : 'on'}">${T.bgDef}</button><button type="button" data-bg="black" class="${bgBlack ? 'on' : ''}">${T.bgBlack}</button></span></div>`;
+    let h = `<h3>${T.sound}</h3>` + seg('music', bgm.on, T.music) + seg('sfx', sfxState.on, T.sfx) + bgSeg;
     h += `<h3>${T.kb}</h3>`;
     for (const a of ACTION_LIST) h += `<div class="crow"><b>${A[a]}</b><span class="slots" data-row>${slot('key', a, 0, keysLabel(keyBind[a][0]))}${slot('key', a, 1, keysLabel(keyBind[a][1]))}</span></div>`;
     h += `<div class="cdef" data-row><button type="button" data-def="key">${T.def}</button></div><div class="note${cfgMsg ? ' warn' : ''}">${cfgMsg || T.kbNote}</div>`;
@@ -1561,6 +1600,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (m) { bgmSetOn(m.dataset.music === 'on'); renderConfig(); navApply(); return; }
     const sx = e.target.closest('[data-sfx]');
     if (sx) { sfxSetOn(sx.dataset.sfx === 'on'); renderConfig(); navApply(); return; }
+    const bgb = e.target.closest('[data-bg]');
+    if (bgb) { bgBlack = bgb.dataset.bg === 'black'; store.set('pr_bg', bgBlack ? 'black' : 'default'); renderConfig(); navApply(); return; }
     const d = e.target.closest('[data-def]');
     if (d) {
       const t = d.dataset.def;
