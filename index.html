@@ -1644,13 +1644,13 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
 
   // ---- フリック(スワイプ)操作 ----
   let g = null;
-  const HOLD_MS = 300;   // これより長く、動かさずに押し続けたら、長押し(連続で動く)
+  const HOLD_MS = 600, HOLD_REPEAT_MS = 90;   // これより長く、動かさずに押し続けたら、長押し(連続ドロップ)。連続の間隔は 90ms
   function holdStop() { if (g) { clearTimeout(g.hold); clearInterval(g.rep); g.hold = g.rep = null; } }
   function holdStart() {   // 長押し: 画面の下端を押し続けると、ドロップを連続で(左右の移動は、ドラッグだけ)
     if (!g || g.axis || g.fingers > 1 || over || g.y0 <= vh() * 0.8) return;
     g.holding = true;
     act('soft');
-    g.rep = setInterval(() => act('soft'), REPEAT.soft);
+    g.rep = setInterval(() => act('soft'), HOLD_REPEAT_MS);
   }
   const gestureOk = e => touchMode && gMode === 'flick' && !menuOpen && !titleOpen && !howtoOpen && !rankOpen && !licenseOpen && !leaveOpen && !configOpen && !e.target.closest('#menuBtn, #menu, #title, #howto, #rank, #gobar, #license, #leave, #config');
   document.addEventListener('touchstart', e => {
@@ -1691,7 +1691,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
       if (dy > 0 && dt < 350 && dy > 60) act('hard');
       else if (dy < 0 && dt < 350 && -dy > 60) act('swap');
     }
-    else if (!g.axis && dt < 300 && Math.hypot(dx, dy) < 12) {   // タップ: 下端2割=ドロップ / 左側=左回転 / 右側=右回転
+    else if (!g.axis && dt < HOLD_MS && Math.hypot(dx, dy) < 12) {   // タップ: 下端2割=ドロップ / 左側=左回転 / 右側=右回転
       if (g.y0 > vh() * 0.8) act('soft');
       else act(g.x0 < vw() / 2 ? 'rotL' : 'rotR');
     }
