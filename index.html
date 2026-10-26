@@ -1747,16 +1747,16 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
   const rankEl = $('rank'), rankPanel = $('rankPanel');
   const RT = {
-    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server.', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
+    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
           score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: 'Sending...',
-          rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet.',
-          cut: 'Not in the top 100.', notBest: 'Not higher than your best score.',
-          errors: { too_fast: 'Please wait a moment and try again.', bad_name: 'Please enter a name.', default: 'Could not submit the score.' } },
-    ja: { ranking: 'Ranking', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした。', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
+          rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet',
+          cut: n => `<span style="display:inline-block">Did not reach 100th place</span> <span style="display:inline-block">(${Number(n)}pt)</span>`, notBest: 'Not higher than your best score',
+          errors: { too_fast: 'Please wait a moment and try again', bad_name: 'Please enter a name', default: 'Could not submit the score' } },
+    ja: { ranking: 'Ranking', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
           score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: '送信中...',
-          rank: n => `${n}位になりました!`, again: 'Play again', title: 'Back To Title', empty: 'まだスコアがありません。',
-          cut: 'ランキング100位に届きませんでした。', notBest: 'ベストスコアを超えていないので、登録しません。',
-          errors: { too_fast: '少し待ってから、もう一度送ってください。', bad_name: 'なまえを入れてください。', default: 'スコアを登録できませんでした。' } },
+          rank: n => `${n}位になりました!`, again: 'Play again', title: 'Back To Title', empty: 'まだスコアがありません',
+          cut: n => `<span style="display:inline-block">ランキング100位(${Number(n)}pt)に</span><span style="display:inline-block">届きませんでした</span>`, notBest: 'ベストスコアを超えていないので、登録しません',
+          errors: { too_fast: '少し待ってから、もう一度送ってください', bad_name: 'なまえを入れてください', default: 'スコアを登録できませんでした' } },
   };
   const rt = () => RT[isJa ? 'ja' : 'en'];
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1828,9 +1828,9 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (!over || !API || titleOpen || rankOpen || menuOpen || goBarOpen) return;
     const T = rt();
     goData = { score, lines, level, pieces: count - 1, mode: giantPct };
-    const skip = score <= rkBest(giantPct) ? T.notBest : (rkCutoff(giantPct) > 0 && score <= rkCutoff(giantPct)) ? T.cut : '';   // 登録しても変わらない得点は、送らない
+    const skip = score <= rkBest(giantPct) ? T.notBest : (rkCutoff(giantPct) > 0 && score <= rkCutoff(giantPct)) ? T.cut(rkCutoff(giantPct)) : '';   // 登録しても変わらない得点は、送らない
     goInput.hidden = goSubmit.hidden = !!skip;
-    if (skip) { goSubmit.disabled = true; goExit.textContent = 'Exit'; goMsg.textContent = skip; goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout(); nav.r = 0; nav.c = 0; navApply(); return; }
+    if (skip) { goSubmit.disabled = true; goExit.textContent = 'Exit'; goMsg.innerHTML = skip; goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout(); nav.r = 0; nav.c = 0; navApply(); return; }
     let lastName = ''; try { lastName = localStorage.getItem('pr_name') || ''; } catch (e) {}
     goInput.value = lastName || memName;   // 前回の名前を、最初から入れておく goInput.placeholder = T.name;
     goSubmit.textContent = T.submit; goSubmit.disabled = false; goExit.textContent = 'Exit'; goMsg.textContent = '';
@@ -1852,7 +1852,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     try {
       const r = await fetch(API + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, ...goData }) });
       const data = await r.json().catch(() => ({}));
-      if (data.error === 'below_cutoff') { rkSet(goData.mode, { cutoff: data.cutoff || 0, ct: Date.now() }); goMsg.textContent = T.cut; goInput.hidden = goSubmit.hidden = true; return; }   // 100位に届かない: サーバーが返した100位の点数を覚える
+      if (data.error === 'below_cutoff') { rkSet(goData.mode, { cutoff: data.cutoff || 0, ct: Date.now() }); goMsg.innerHTML = T.cut(data.cutoff || 0); goInput.hidden = goSubmit.hidden = true; return; }   // 100位に届かない: サーバーが返した100位の点数を覚える
       if (!r.ok) { goMsg.textContent = T.errors[data.error] || T.errors.default; goSubmit.disabled = false; return; }
       rkSet(goData.mode, { cutoff: data.cutoff || 0, ct: Date.now(), best: data.best, bt: Date.now(), ...(data.updated ? { lt: 0 } : {}) });   // 自分のベストと100位の点数を覚える。記録が更新されたら、順位表をすぐ読み直す
       hideGoBar(); showResult(data.rank, !!data.updated);
