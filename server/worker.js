@@ -4,6 +4,8 @@
 // 方針: 頻度(mode)ごとに、1人1件(ベストのみ)・上位100人だけを残す。100位以下の記録は保存しない。
 // これでテーブルは最大でも 100 行 × 2 になり、D1 の読み取りが少なくて済む。
 // 不正対策は「簡易なもの」です(ブラウザから送る値は完全には信用できません)。
+// 書き換え対策の細かい中身は、別ファイル protect.js に分けてある(非公開)。
+import { extraValidate, ipLimit, insertStatement } from './protect.js';
 
 const MAX_NAME = 12;               // 名前の最大文字数
 const MIN_INTERVAL_MS = 15000;     // 同じ端末からの登録間隔の下限
@@ -72,9 +74,10 @@ function validate(b) {
   if (pieces < 1 || pieces > 100000) return { error: 'bad_values' };
   if (score > MAX_SCORE) return { error: 'bad_score' };
   if (level !== Math.floor(lines / 10) + 1) return { error: 'bad_values' };
-  if (lines > pieces * 8) return { error: 'bad_values' };                     // 1 ピースで消せるのは最大 8 ライン(倍サイズ)
-  if (score > 1600 * lines + 20 * pieces + 100) return { error: 'bad_score' }; // ライン 1 本あたり最大 1600 点 + ドロップ
-  return { value: { name, score, lines, level, pieces, mode: parseMode(b.mode) } };
+  const mode = parseMode(b.mode);
+  const bad = extraValidate(b, mode);   // ゲームの規則に合わない値を弾く(中身は protect.js)
+  if (bad) return { error: bad };
+  return { value: { name, score, lines, level, pieces, mode, raw: b } };
 }
 
 export default {
@@ -133,6 +136,8 @@ async function handle(request, env) {
       if (last && now - last.created_at < MIN_INTERVAL_MS) {
         return reply(request, env, { error: 'too_fast' }, 429);
       }
+      const limited = await ipLimit(env.DB, s.mode, ipHash, s.name);   // 接続元ごとの制限(中身は protect.js)
+      if (limited) return reply(request, env, { error: limited }, 403);
 
       const { results: top } = await env.DB.prepare(TOP_SQL).bind(s.mode).all();   // 上位100人(1人1件)
       const cutoff = cutoffOf(top);
@@ -147,8 +152,7 @@ async function handle(request, env) {
       } else {
         await env.DB.batch([
           env.DB.prepare('DELETE FROM scores WHERE mode = ? AND lower(name) = lower(?)').bind(s.mode, s.name),
-          env.DB.prepare('INSERT INTO scores (name, score, lines, level, pieces, mode, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind(s.name, s.score, s.lines, s.level, s.pieces, s.mode, now, ipHash),
+          insertStatement(env.DB, s, now, ipHash, request),
           // 100人を超えた分(いちばん下)を消す
           env.DB.prepare(`DELETE FROM scores WHERE mode = ? AND id NOT IN (SELECT id FROM scores WHERE mode = ? ORDER BY score DESC, created_at ASC LIMIT ${MAX_LIST})`).bind(s.mode, s.mode),
         ]);

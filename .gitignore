@@ -4,3 +4,9 @@ _work/
 # wrangler の作業用ファイル
 server/.wrangler/
 server/node_modules/
+
+# スコアのCSV保存用(公開しない)
+server/export_scores.py
+server/export_scores.bat
+server/protect.js
+server/migrate_protect.sql

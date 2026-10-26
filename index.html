@@ -70,7 +70,7 @@
   #gobar { position:absolute; z-index:15; width:260px; display:flex; flex-direction:column; gap:8px;
            font:15px/1.4 system-ui,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif; text-transform:none; letter-spacing:0; color:#fff; }
   #goRow { display:flex; gap:8px; }
-  #goRow button { flex:1 1 0; min-width:0; height:44px; }   /* ボタン2つは同じ大きさ */
+  #goRow button { flex:1 1 0; min-width:0; height:44px; padding:0 4px; font-size:14px; }   /* ボタンは同じ大きさ */
   /* 入力欄とボタンは、右上の MENU ボタンと同じ見た目: 盤面と同じ色の不透明な背景 + 白い2pxの縁 */
   #gobar input { width:100%; box-sizing:border-box; font:inherit; font-size:20px; padding:9px 12px; color:#fff; background:#000; border:2px solid #fff; border-radius:6px; outline:none;   /* 入力エリアの背景は黒 */
                  -webkit-user-select:text; user-select:text; touch-action:auto; }
@@ -219,7 +219,7 @@
   .seg button { flex:1; }
   .seg button.on { background:#2f6dff; color:#fff; border-color:#8fb2ff; }
   .desc { margin-top:10px; }
-  #menuFoot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  #menuFoot { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-top:16px; }
 
   /* 画面ボタン(アイコン): 上段 ◀ ▶ 左回転 右回転 / 下段 ▼ SWAP ≫(ハードドロップ) */
   #pad { position:fixed; left:0; right:0; bottom:0; z-index:10; padding:8px 10px calc(10px + env(safe-area-inset-bottom));
@@ -258,7 +258,7 @@
   <canvas id="board" width="300" height="600"></canvas>
   <div id="gobar" hidden>
     <input id="nameIn" maxlength="12" autocomplete="off">
-    <div id="goRow"><button class="main" id="goSubmit" type="button"></button><button id="goExit" type="button">Exit</button></div>
+    <div id="goRow"><button class="main" id="goSubmit" type="button"></button><button id="goRetry" type="button">Retry</button><button id="goExit" type="button">Exit</button></div>
     <div id="goMsg"></div>
   </div>
   <div id="side">
@@ -432,7 +432,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   <div id="menuPanel">
     <button class="x" id="menuX" type="button" aria-label="Close">&times;</button>
     <div id="menuBody"></div>
-    <div id="menuFoot"><button id="restartBtn" type="button">Back To Title</button><button id="closeBtn" type="button">CLOSE</button></div>
+    <div id="menuFoot"><button id="retryBtn" type="button">Retry</button><button id="restartBtn" type="button">Back To Title</button><button id="closeBtn" type="button">CLOSE</button></div>
   </div>
 </div>
 <div id="pad" hidden>
@@ -530,7 +530,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     bag = []; count = Number(new URLSearchParams(location.search).get('count')) || 0;   // ?count=9 で途中から開始(確認用)
     hideGoBar();
     clearing = null; parts = []; board.style.transform = ''; clearFx();
-    score = 0; lines = 0; level = 1; over = false; paused = false; overShown = false;
+    score = 0; lines = 0; level = 1; over = false; paused = false; overShown = false; playMs = 0;
     cur = newPiece(); place(cur);
     next = newPiece();
     last = performance.now(); dropAt = 0; cloud = rain = 0;
@@ -571,9 +571,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
     if (ok) { cur.rot = rot; cur.m = m; cur.x += dx; cur.y += dy; sfx('rotate'); }
   }
-  function softDrop() {
+  function softDrop() {   // 下まで着いたあとは、何もしない(ソフトドロップで固定を早めない。固定は、落下の間隔が来たときか、ハードドロップのとき)
     if (!hit(cur.m, cur.x, cur.y + 1)) { cur.y++; score += 1; dropAt = performance.now(); sfx('soft'); }
-    else lock();
   }
   function hardDrop() {
     let n = 0;
@@ -585,13 +584,21 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   function swapNext() {
     // 今の駒と同じ高さ(駒の一番上の位置)・同じ横位置(中心)から Next の駒を出す。
     // 形と色だけを入れ替え、大きさ(倍サイズ)は落下中/Nextそれぞれの枠のまま。
-    // 壁や積んだブロックにめり込むなら入れ替えない。成功したら true。
+    // 壁や積んだブロックにめり込むなら、位置をずらして入れ替える(左右に最大 2 マス、上に最大 2 マス)。ずらしても無理なら入れ替えない。成功したら true。
     const sz = cur.s, nz = next.s;
     const top = m => m.findIndex(row => row.some(Boolean));
     const m = scale(ROT[next.name][0], sz);
-    const x = cur.x + Math.floor((cur.m[0].length - m[0].length) / 2);
-    const y = cur.y + top(cur.m) - top(m);
-    if (hit(m, x, y)) return false;
+    let x = cur.x + Math.floor((cur.m[0].length - m[0].length) / 2);
+    let y = cur.y + top(cur.m) - top(m);
+    if (hit(m, x, y)) {
+      const toCenter = x + m[0].length / 2 < COLS / 2 ? 1 : -1;   // 盤面の中央へ向かう側を先に試す
+      const maxd = 2 * sz, cands = [];
+      for (let u = 0; u <= maxd; u++) for (let d = -maxd; d <= maxd; d++) cands.push([d, -u, Math.abs(d) + 2 * u + (d * toCenter < 0 ? .5 : 0)]);
+      cands.sort((p, q) => p[2] - q[2]);   // ずらす量が小さい順
+      const k = cands.find(([d, u]) => !hit(m, x + d, y + u));
+      if (!k) return false;
+      x += k[0]; y += k[1];
+    }
     const a = cur, b = next;
     cur = { name: b.name, color: b.color, s: sz, rot: 0, m, x, y };
     next = { name: a.name, color: a.color, s: nz, rot: 0, m: scale(ROT[a.name][0], nz), x: 0, y: 0 };
@@ -712,7 +719,10 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     l = k >= 0 ? l + (1 - l) * k * .85 : l * (1 + k * .8);
     return `hsl(${h},${Math.round(Math.min(100, sat * 100 + 10))}%,${Math.round(l * 100)}%)`;
   }
-  // フラットなセル(隙間なし)
+  // 落下中のミノの中のマス目の線: ミノの色を少し濃くした色を、うっすらと
+  const lineColors = {};
+  const lineColor = color => lineColors[color] || (lineColors[color] = shade(color, -.4).replace('hsl(', 'hsla(').replace(')', ', .8)'));
+  // フラットなセル(隙間なし)。積んだブロックには、マス目の線を入れない
   function cell(c, x, y, size, color) {
     c.fillStyle = color;
     c.fillRect(x, y, size, size);
@@ -771,6 +781,20 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
   }
 
+  // 駒の中のマス目の線(ブロックどうしが接している辺だけ)。巨大ピースは、2×2 の大きさのブロックごとに線が入る
+  function pieceLines(c, m, s, px, py, size, color) {
+    const G = pieceGrid(m, s), B = size * s;
+    c.strokeStyle = lineColor(color); c.lineWidth = 1;
+    c.beginPath();
+    for (let i = 0; i < G.rows; i++)
+      for (let j = 0; j < G.cols; j++) {
+        if (!G.f(i, j)) continue;
+        const x = px + j * B, y = py + i * B;
+        if (G.f(i - 1, j)) { c.moveTo(x, y + .5); c.lineTo(x + B, y + .5); }
+        if (G.f(i, j - 1)) { c.moveTo(x + .5, y); c.lineTo(x + .5, y + B); }
+      }
+    c.stroke();
+  }
   // 落下中の駒の外周を白で縁取る(外側もへこみ角も丸く。隣り合うセルの間には線を引かない)
   function outlinePiece(c, m, s, px, py, size) {
     const G = pieceGrid(m, s), B = size * s, R = size * .22, Rv = R * .6, P = Math.PI;   // Rv: へこみ角の半径(外側の6割)
@@ -929,6 +953,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
     if (!clearing) {
       drawPiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL, cur.color, true);
+      pieceLines(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL, cur.color);
       if (!over) outlinePiece(ctx, cur.m, cur.s, cur.x * CELL, cur.y * CELL, CELL);
     }
 
@@ -940,6 +965,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     const m = scale(base.map(row => cols.map(i => row[i])), next.s);
     const ox = (nextCv.width - m[0].length * ns) / 2, oy = (nextCv.height - m.length * ns) / 2;
     drawPiece(nctx, m, next.s, ox, oy, ns, next.color, true);
+    pieceLines(nctx, m, next.s, ox, oy, ns, next.color);
     outlinePiece(nctx, m, next.s, ox, oy, ns);
 
     if (over || (paused && !menuOpen)) {
@@ -953,7 +979,10 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     }
   }
 
+  let playMs = 0, playLast = 0;   // 実際に遊んだ時間(一時停止・メニュー・タイトルの間は数えない)。スコア登録のときに、一緒に送る
   function loop(t) {
+    if (!titleOpen && !over && !paused && !menuOpen) playMs += Math.min(100, t - playLast);
+    playLast = t;
     pollPad(t);
     bgmTick(t);
     if (clearing && performance.now() - clearing.t0 >= clearing.dur) finishClear();   // 演出が終わったら、行を消して次の駒へ
@@ -1256,6 +1285,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('closeBtn').addEventListener('click', closeMenu);
   $('menuX').addEventListener('click', closeMenu);
+  $('retryBtn').addEventListener('click', () => { if (over) retryGame(); else openLeave('retry'); });   // リトライ: ゲーム中は、確認してから
   $('restartBtn').addEventListener('click', () => { if (over) { closeMenu(); goTitle(); } else openLeave('title'); });   // 「Back To Title」: ゲーム中は、確認してから
   menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
   menuBody.addEventListener('click', e => {
@@ -1362,6 +1392,13 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     cloud = rain = tCloud = tRain = 0;   // タイトル画面はいつも晴れから(直前の雨や曇りを引き継がない)
     bgmStop(); fitTitle();
   }
+  function retryGame() {   // リトライ: 同じ頻度(10% / 5%)で、最初からもう一度
+    hideGoBar(); if (rankOpen) closeRank(); if (menuOpen) closeMenu();
+    cloud = rain = tCloud = tRain = 0;   // 天気も晴れから
+    bgmStop();
+    reset(); layout();
+    try { ensureCtx(); bgmStart(); } catch (e) {}
+  }
   // ---- LICENSE の画面(タイトル画面の一番下の著作権の表示から開く) ----
   // ---- アプリ一覧への移動(右上のアイコン → 確認ダイアログ → Yes で移動) ----
   const APPS_ICON = [
@@ -1387,6 +1424,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   const leaveEl = $('leave');
   const LEAVE_TXT = {
     apps: isJa ? 'アプリ一覧に移動します。\nこのゲームを離れますがよろしいですか？' : 'This will take you to the app list.\nDo you want to leave this game?',
+    retry: isJa ? 'はじめからやり直します。\nいまのゲームは、ここで終わりますがよろしいですか？' : 'Start over from the beginning?\nThe current game will end.',
     title: isJa ? 'タイトルに戻ります。\nいまのゲームは、ここで終わりますがよろしいですか？' : 'Go back to the title screen?\nThe current game will end.',
   };
   let leaveMode = 'apps', leaveNav = [0, 0];
@@ -1398,13 +1436,14 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   }
   function closeLeave() {
     leaveOpen = false; leaveEl.hidden = true;
-    if (leaveMode === 'title') { [nav.r, nav.c] = leaveNav; $('restartBtn').focus(); } else $('appsBtn').focus();
+    if (leaveMode === 'title' || leaveMode === 'retry') { [nav.r, nav.c] = leaveNav; $(leaveMode === 'retry' ? 'retryBtn' : 'restartBtn').focus(); } else $('appsBtn').focus();
     navApply();
   }
   $('appsBtn').addEventListener('click', () => openLeave('apps'));
   $('leaveNo').addEventListener('click', closeLeave);
   $('leaveYes').addEventListener('click', () => {
     if (leaveMode === 'title') { leaveOpen = false; leaveEl.hidden = true; closeMenu(); goTitle(); return; }   // タイトルに戻る
+    if (leaveMode === 'retry') { leaveOpen = false; leaveEl.hidden = true; retryGame(); return; }   // リトライ
     location.href = 'https://daisuqe.github.io/';
   });
   leaveEl.addEventListener('click', e => { if (e.target === leaveEl) closeLeave(); });
@@ -1427,12 +1466,12 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (howtoOpen) return [[$('howtoBack')]];
     if (menuOpen) {
       const rows = [...menuBody.querySelectorAll('.seg')].map(seg => [...seg.querySelectorAll('button')]).filter(r => r.length);
-      rows.push([$('restartBtn'), $('closeBtn')]);
+      rows.push([$('retryBtn'), $('restartBtn'), $('closeBtn')]);
       return rows;
     }
     if (titleOpen && chooserOpen) return [[$('giant10'), $('giant5')]];
     if (titleOpen) return [[$('startBtn')], ...($('rankBtn').hidden ? [] : [[$('rankBtn')]]), ...($('configBtn').hidden ? [] : [[$('configBtn')]]), [$('howtoBtn')]];
-    if (goBarOpen) { const r = []; if (!goInput.hidden) r.push([goInput]); r.push([goSubmit, goExit].filter(x => !x.hidden)); return r; }   // ゲームオーバーの登録バー(名前の欄 → OK / Exit)
+    if (goBarOpen) { const r = []; if (!goInput.hidden) r.push([goInput]); r.push([goSubmit, goRetry, goExit].filter(x => !x.hidden)); return r; }   // ゲームオーバーの登録バー(名前の欄 → OK / Exit)
     return [];
   }
   function navApply() {   // 選択中の項目に枠を付ける
@@ -1788,16 +1827,16 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   const API = (new URLSearchParams(location.search).get('api') || SCORE_API).replace(/\/+$/, '');   // ?api= は動作確認用
   const rankEl = $('rank'), rankPanel = $('rankPanel');
   const RT = {
-    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
-          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: 'Sending...',
+    en: { ranking: 'Ranking', loading: 'Loading...', fail: 'Could not reach the ranking server', retry: 'Reload', back: 'Back To Title', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'SEND', skip: 'Exit', sending: 'Sending...',
           rank: n => `You are #${n}!`, again: 'Play again', title: 'Back To Title', empty: 'No scores yet',
           cut: n => `<span style="display:inline-block">Did not reach 100th place</span> <span style="display:inline-block">(${Number(n)}pt)</span>`, notBest: 'Not higher than your best score',
-          errors: { too_fast: 'Please wait a moment and try again', bad_name: 'Please enter a name', default: 'Could not submit the score' } },
-    ja: { ranking: 'Ranking', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした', retry: 'Retry', back: 'Back To Title', gameover: 'GAME OVER',
-          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'OK', skip: 'Exit', sending: '送信中...',
+          errors: { too_many: 'Too many names from this connection', too_fast: 'Please wait a moment and try again', bad_name: 'Please enter a name', default: 'Could not submit the score' } },
+    ja: { ranking: 'Ranking', loading: '読み込み中...', fail: 'ランキングサーバーにつながりませんでした', retry: 'Reload', back: 'Back To Title', gameover: 'GAME OVER',
+          score: 'Score', lines: 'Lines', level: 'Level', name: 'Enter Your Name', submit: 'SEND', skip: 'Exit', sending: '送信中...',
           rank: n => `${n}位になりました!`, again: 'Play again', title: 'Back To Title', empty: 'まだスコアがありません',
           cut: n => `<span style="display:inline-block">ランキング100位(${Number(n)}pt)に</span><span style="display:inline-block">届きませんでした</span>`, notBest: 'ベストスコアを超えていないので、登録しません',
-          errors: { too_fast: '少し待ってから、もう一度送ってください', bad_name: 'なまえを入れてください', default: 'スコアを登録できませんでした' } },
+          errors: { too_many: 'この接続からは、これ以上の名前で登録できません', too_fast: '少し待ってから、もう一度送ってください', bad_name: 'なまえを入れてください', default: 'スコアを登録できませんでした' } },
   };
   const rt = () => RT[isJa ? 'ja' : 'en'];
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1834,10 +1873,12 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     if (first) showRank();
     const head = '<div class="hrow">' + (heading ? `<h2>${heading}</h2>` : `<h2 class="yk">${T.ranking}</h2>`) + '<button class="x" id="rankX" type="button" aria-label="Close">&times;</button></div>';
     const tabs = `<div class="tabs"><button type="button" data-m="10" class="${mode === 10 ? 'on' : ''}">10%</button><button type="button" data-m="5" class="${mode === 5 ? 'on' : ''}">5%</button></div>`;
-    const foot = extra => `<div class="rbtns">${extra || ''}<button class="main" id="rankClose" type="button">${T.back}</button></div>`;
+    const again = myMode ? '<button id="rankAgain" type="button">Retry</button>' : '';   // 登録のあとの画面にだけ、リトライを出す
+    const foot = extra => `<div class="rbtns">${extra || ''}${again}<button class="main" id="rankClose" type="button">${T.back}</button></div>`;
     const wire = () => {
       rankPanel.querySelectorAll('.tabs button').forEach(b => { b.onclick = () => drawRanking({ mode: Number(b.dataset.m), myRank, myMode, heading, back }); });
       $('rankClose').onclick = back;
+      if ($('rankAgain')) $('rankAgain').onclick = retryGame;
       $('rankX').onclick = back;   // 右上の × も、Back To Title と同じ
     };
     rankPanel.innerHTML = head + tabs + `<p>${T.loading}</p>` + foot(); wire();
@@ -1855,7 +1896,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   function openRanking() { drawRanking({ mode: lastMode(), back: closeRank, first: true }); }   // タイトル画面の RANKING ボタン
 
   // ---- ゲームオーバー: メイン画面の下に「名前の入力欄 / 登録 / Exit」だけを出す ----
-  const goBar = $('gobar'), goInput = $('nameIn'), goMsg = $('goMsg'), goSubmit = $('goSubmit'), goExit = $('goExit');
+  const goBar = $('gobar'), goInput = $('nameIn'), goMsg = $('goMsg'), goSubmit = $('goSubmit'), goExit = $('goExit'), goRetry = $('goRetry');
   let goData = null, memName = '';   // memName: localStorage が使えない環境でも、このページを開いている間は名前を覚えておく
   function placeGoBar() {   // 盤面の「GAME OVER」の文字(盤面の縦中央)のすぐ下に置く
     const b = board, x = b.offsetLeft + b.clientLeft + (b.width - 260) / 2, y = b.offsetTop + b.clientTop + b.height / 2 + 14;
@@ -1868,7 +1909,7 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
   function openGameOver() {
     if (!over || !API || titleOpen || rankOpen || menuOpen || goBarOpen) return;
     const T = rt();
-    goData = { score, lines, level, pieces: count - 1, mode: giantPct };
+    goData = { score, lines, level, pieces: count - 1, mode: giantPct, duration: Math.round(playMs) };
     const skip = score <= rkBest(giantPct) ? T.notBest : (rkCutoff(giantPct) > 0 && score <= rkCutoff(giantPct)) ? T.cut(rkCutoff(giantPct)) : '';   // 登録しても変わらない得点は、送らない
     goInput.hidden = goSubmit.hidden = !!skip;
     if (skip) { goSubmit.disabled = true; goExit.textContent = 'Exit'; goMsg.innerHTML = skip; goBarOpen = true; goBar.hidden = false; document.body.classList.add('gobar'); placeGoBar(); layout(); nav.r = 0; nav.c = 0; navApply(); return; }
@@ -1900,7 +1941,8 @@ daisuqe が保有します。著作権者の事前の書面による許可なく
     } catch (e) { goMsg.textContent = T.fail; goSubmit.disabled = false; }
   }
   goSubmit.addEventListener('click', sendScore);
-  goExit.addEventListener('click', () => { hideGoBar(); goTitle(); });   // Exit = タイトル画面へ
+  goExit.addEventListener('click', () => { hideGoBar(); goTitle(); });
+  goRetry.addEventListener('click', retryGame);   // Exit = タイトル画面へ
   goInput.addEventListener('input', () => {   // 登録しなくても(EXITしても)、打った名前は覚えておく
     const v = goInput.value.trim();
     if (!v) return;
